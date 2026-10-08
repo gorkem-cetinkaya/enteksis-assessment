@@ -1,6 +1,8 @@
 import { isValidRequestId, validate } from "./validation.js";
 
 const FIELDS = ["name", "email", "service", "description"];
+// How long the browser waits for the server before giving up on a submission.
+const REQUEST_TIMEOUT_MS = 30_000;
 
 const form = document.getElementById("request-form");
 const submitButton = document.getElementById("submit-button");
@@ -62,30 +64,56 @@ function firstErrorPerField(serverErrors) {
   );
 }
 
+// Seconds from a Retry-After header such as "60"; null if missing or not a number.
+function retryAfterSeconds(response) {
+  const seconds = Number.parseInt(response.headers.get("Retry-After") ?? "", 10);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+}
+
 // Sends the request exactly once. There is deliberately no automatic retry:
-// repeating a request whose response was lost could store it twice.
+// repeating a request whose response was lost could store it twice. After
+// REQUEST_TIMEOUT_MS the browser stops waiting; the server may still finish.
 async function sendRequest(values) {
-  let response;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    response = await fetch("/api/requests", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(values),
-    });
-  } catch {
-    return { outcome: "network-error" };
-  }
+    let response;
+    try {
+      response = await fetch("/api/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(values),
+        signal: controller.signal,
+      });
+    } catch {
+      return { outcome: controller.signal.aborted ? "timeout" : "network-error" };
+    }
 
-  const body = await response.json().catch(() => null);
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      // The timeout can also fire while the body is still arriving.
+      if (controller.signal.aborted) return { outcome: "timeout" };
+    }
 
-  // Success requires both the 201 status and a well-formed requestId.
-  if (response.status === 201 && isValidRequestId(body?.requestId)) {
-    return { outcome: "saved", requestId: body.requestId };
+    // Success requires both the 201 status and a well-formed requestId.
+    if (response.status === 201 && isValidRequestId(body?.requestId)) {
+      return { outcome: "saved", requestId: body.requestId };
+    }
+    if (response.status === 400 && body?.errors) {
+      return { outcome: "invalid", errors: firstErrorPerField(body.errors) };
+    }
+    if (response.status === 429) {
+      return { outcome: "rate-limited", retryAfter: retryAfterSeconds(response) };
+    }
+    if (response.status === 413) {
+      return { outcome: "too-large" };
+    }
+    return { outcome: "failed", status: response.status, title: typeof body?.title === "string" ? body.title : null };
+  } finally {
+    clearTimeout(timeout);
   }
-  if (response.status === 400 && body?.errors) {
-    return { outcome: "invalid", errors: firstErrorPerField(body.errors) };
-  }
-  return { outcome: "failed", status: response.status, title: typeof body?.title === "string" ? body.title : null };
 }
 
 form.addEventListener("submit", async (event) => {
@@ -128,6 +156,34 @@ form.addEventListener("submit", async (event) => {
         "alert",
         "Sunucuya ulaşılamadı veya yanıt alınamadı. Talebinizin kaydedilip kaydedilmediğini doğrulayamıyoruz. " +
           "Bilgileriniz formda duruyor; yeniden göndermeden önce bağlantınızı kontrol edin.",
+      );
+      alertMessage.focus();
+      break;
+    case "timeout":
+      // Giving up in the browser does not cancel the request on the server.
+      showMessage(
+        "alert",
+        `Sunucudan ${REQUEST_TIMEOUT_MS / 1000} saniye içinde yanıt alınamadı. ` +
+          "Talebinizin kaydedilip kaydedilmediğini bilmiyoruz. Bilgileriniz formda duruyor; " +
+          "yeniden göndermeden önce biraz bekleyin.",
+      );
+      alertMessage.focus();
+      break;
+    case "rate-limited":
+      // 429 comes from the rate limiter before the request is handled, so nothing was saved.
+      showMessage(
+        "alert",
+        "Kısa sürede çok fazla talep gönderildi; talebiniz kaydedilmedi. " +
+          (result.retryAfter ? `Lütfen yaklaşık ${result.retryAfter} saniye sonra` : "Lütfen biraz sonra") +
+          " tekrar deneyin. Bilgileriniz formda duruyor.",
+      );
+      alertMessage.focus();
+      break;
+    case "too-large":
+      showMessage(
+        "alert",
+        "Gönderilen bilgiler izin verilen boyutu aşıyor; talebiniz kaydedilmedi. " +
+          "Lütfen açıklamayı kısaltıp tekrar deneyin.",
       );
       alertMessage.focus();
       break;
