@@ -45,6 +45,11 @@ function showMessage(kind, text) {
 
 function setSubmitting(value) {
   isSubmitting = value;
+  // Lock the fields as well as the button: anything typed while waiting would
+  // not be part of the request and would be lost when the form resets.
+  for (const field of FIELDS) {
+    form.elements[field].disabled = value;
+  }
   submitButton.disabled = value;
   submitButton.textContent = value ? "Gönderiliyor…" : submitLabel;
   form.setAttribute("aria-busy", String(value));
