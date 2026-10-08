@@ -1,44 +1,373 @@
-/* Deliberately plain: readable text, clear focus and error states. */
+/* Örnek Otomasyon: plain, readable landing page and request form. */
 :root {
   color-scheme: light;
-  --text: #1a1a1a;
-  --muted: #555555;
-  --border: #767676;
-  --accent: #1a5fb4;
-  --error: #b3261e;
-  --success: #1e6b34;
-  --notice-border: #a56a00;
-  --notice-background: #fff6d6;
+  --text: #1b1f24;
+  --muted: #4a5561;
+  --border: #c9d1d9;
+  --input-border: #6b7480;
+  --surface: #ffffff;
+  --surface-muted: #f3f5f7;
+  --accent: #1d4ed8;
+  --accent-dark: #1e3a8a;
+  --accent-soft: #e8eefc;
+  --error: #b42318;
+  --success: #166534;
+  --notice-border: #a15c00;
+  --notice-background: #fff6e0;
+  --radius: 8px;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  line-height: 1.5;
+  font-size: 1rem;
+  line-height: 1.6;
   color: var(--text);
-  background: #ffffff;
+  background: var(--surface);
+  overflow-wrap: break-word;
 }
 
-main {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 2rem 1rem 3rem;
+h1,
+h2,
+h3 {
+  margin: 0 0 0.75rem;
+  line-height: 1.25;
 }
 
 h1 {
-  margin: 0 0 0.5rem;
-  font-size: 1.75rem;
+  max-width: 24ch;
+  font-size: clamp(1.875rem, 1.2rem + 3vw, 2.875rem);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2rem);
+}
+
+h3 {
+  font-size: 1.125rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--accent);
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  color: var(--accent-dark);
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* main only receives focus as the skip link target; it is not a control. */
+main:focus {
+  outline: none;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.container {
+  width: 100%;
+  max-width: 70rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Skip link: hidden above the page until it receives keyboard focus. */
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 1rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  font-weight: 600;
+  background: var(--surface);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Header */
+.site-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.brand {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.header-link {
+  padding: 0.5rem 0;
+  font-weight: 600;
+}
+
+/* Hero */
+.hero {
+  padding: 3.5rem 0 3rem;
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface));
+}
+
+.eyebrow {
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.lead {
+  max-width: 42rem;
+  font-size: 1.125rem;
+}
+
+.hero-points {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.hero-points li {
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+/* Decorative dot; it has no text, so screen readers do not announce it. */
+.hero-points li::before {
+  content: "";
+  position: absolute;
+  top: 0.6em;
+  left: 0.25rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.5rem;
+  margin: 0;
+}
+
+.button,
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 1.4rem;
+  border: none;
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: 600;
   line-height: 1.2;
+  color: #ffffff;
+  background: var(--accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover,
+button:hover {
+  color: #ffffff;
+  background: var(--accent-dark);
+}
+
+button:disabled {
+  background: #5a6576;
+  cursor: progress;
+}
+
+.text-link {
+  font-weight: 600;
+}
+
+/* Sections */
+.section {
+  padding: 3.5rem 0;
+}
+
+.section-muted {
+  background: var(--surface-muted);
+}
+
+.section-intro {
+  max-width: 42rem;
+  margin-bottom: 1.75rem;
+  color: var(--muted);
+}
+
+.cards,
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Fictional example: manual work next to the proposed flow. */
+.comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.panel {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.flow {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.tag {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+}
+
+.note {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+/* Process steps, numbered with a CSS counter. */
+.steps {
+  counter-reset: step;
+}
+
+.step {
+  position: relative;
+  padding: 4rem 1.5rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  counter-increment: step;
+}
+
+.step::before {
+  content: counter(step);
+  position: absolute;
+  top: 1.25rem;
+  left: 1.5rem;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  font-weight: 700;
+  color: #ffffff;
+  background: var(--accent);
+}
+
+.step p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Request section: intro and notice beside the form on wide screens. */
+.request-layout {
+  display: grid;
+  gap: 2rem;
+}
+
+@media (min-width: 60rem) {
+  .request-layout {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
 }
 
 .demo-notice {
-  padding: 0.75rem 1rem;
+  padding: 1rem 1.25rem;
   border-left: 4px solid var(--notice-border);
+  border-radius: 0 var(--radius) var(--radius) 0;
   background: var(--notice-background);
+}
+
+.demo-notice p:last-child {
+  margin-bottom: 0;
+}
+
+/* Form */
+form {
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 .field {
@@ -56,11 +385,11 @@ select,
 textarea {
   width: 100%;
   padding: 0.6rem 0.7rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--input-border);
   border-radius: 4px;
   font: inherit;
   color: inherit;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 textarea {
@@ -79,11 +408,6 @@ textarea:disabled {
   border: 2px solid var(--error);
 }
 
-:focus-visible {
-  outline: 3px solid var(--accent);
-  outline-offset: 2px;
-}
-
 .field-hint {
   margin: 0 0 0.25rem;
   font-size: 0.9rem;
@@ -94,23 +418,6 @@ textarea:disabled {
   margin: 0.25rem 0 0;
   font-weight: 600;
   color: var(--error);
-}
-
-button {
-  min-height: 44px;
-  padding: 0.7rem 1.4rem;
-  border: none;
-  border-radius: 4px;
-  font: inherit;
-  font-weight: 600;
-  color: #ffffff;
-  background: var(--accent);
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #5a6576;
-  cursor: progress;
 }
 
 .form-status,
@@ -126,4 +433,17 @@ button:disabled {
 
 .form-alert {
   color: var(--error);
+}
+
+/* Footer */
+.site-footer {
+  padding: 2rem 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.site-footer p {
+  max-width: 48rem;
+  margin: 0;
 }

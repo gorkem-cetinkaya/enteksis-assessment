@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -156,15 +157,47 @@ public class ServiceRequestEndpointTests
     }
 
     [Fact]
-    public async Task Home_page_serves_the_form_with_the_demo_notice()
+    public async Task Home_page_serves_the_landing_sections_and_the_form_with_the_demo_notice()
     {
-        await using var app = new TestApp(new RecordingStore());
-        using var client = app.CreateClient();
+        var html = await GetHomePageAsync();
 
-        var html = await client.GetStringAsync("/");
+        Assert.Single(Regex.Matches(html, "<h1[ >]"));
+        Assert.Contains("""<a class="button" href="#talep">Talep oluştur</a>""", html);
+        foreach (var section in new[] { "hizmetler", "ornek", "surec", "talep" })
+        {
+            Assert.Contains($"""<section id="{section}" """, html);
+        }
 
         Assert.Contains("""<form id="request-form" method="post" action="/api/requests" """, html);
         Assert.Contains("Demo uygulamadır. Yalnızca kurgusal bilgiler kullanın.", html);
+    }
+
+    [Theory]
+    [InlineData("workflow-automation", "İş akışı otomasyonu")]
+    [InlineData("api-integration", "API ve veri entegrasyonu")]
+    [InlineData("ai-triage", "AI destekli talep sınıflandırma")]
+    public async Task Each_service_card_matches_a_form_option(string code, string name)
+    {
+        var html = await GetHomePageAsync();
+
+        Assert.Contains($"""<h3 class="card-title">{name}</h3>""", html);
+        Assert.Contains($"""<option value="{code}">{name}</option>""", html);
+    }
+
+    [Fact]
+    public async Task Form_options_are_exactly_the_service_codes_the_server_accepts()
+    {
+        var html = await GetHomePageAsync();
+
+        var optionValues = Regex.Matches(html, """<option value="([^"]+)">""").Select(match => match.Groups[1].Value);
+        Assert.Equal(ServiceRequestValidator.ServiceCodes, optionValues);
+    }
+
+    private static async Task<string> GetHomePageAsync()
+    {
+        await using var app = new TestApp(new RecordingStore());
+        using var client = app.CreateClient();
+        return await client.GetStringAsync("/");
     }
 
     [Theory]

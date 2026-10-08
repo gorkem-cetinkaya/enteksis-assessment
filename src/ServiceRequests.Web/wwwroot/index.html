@@ -3,60 +3,213 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Otomasyon talebi</title>
+  <title>Örnek Otomasyon · Müşteri talepleri için otomasyon</title>
+  <meta name="description" content="Müşteri taleplerini e-posta ile Excel arasında elle taşıyan küçük işletmeler için iş akışı otomasyonu, API ve veri entegrasyonu ile AI destekli talep sınıflandırma. Kurgusal demo.">
   <link rel="stylesheet" href="styles.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
-  <main>
-    <h1>Otomasyon talebi gönderin</h1>
-    <p>E-posta ile Excel arasında elle taşıdığınız müşteri taleplerini anlatın; uygun otomasyonu birlikte belirleyelim.</p>
+  <a class="skip-link" href="#main">İçeriğe geç</a>
 
-    <p class="demo-notice" id="demo-notice">Demo uygulamadır. Yalnızca kurgusal bilgiler kullanın.</p>
+  <header class="site-header">
+    <div class="container header-inner">
+      <span class="brand">Örnek Otomasyon</span>
+      <a class="header-link" href="#talep">Talep oluştur</a>
+    </div>
+  </header>
 
-    <noscript>
-      <p class="form-alert">Formu göndermek için tarayıcınızda JavaScript açık olmalıdır.</p>
-    </noscript>
-
-    <!-- method="post" keeps the entered values out of the URL even if the script fails to load. -->
-    <form id="request-form" method="post" action="/api/requests" novalidate aria-describedby="demo-notice">
-      <div class="field">
-        <label for="name">Ad soyad</label>
-        <input id="name" name="name" type="text" autocomplete="name" required aria-describedby="name-error">
-        <p class="field-error" id="name-error" hidden></p>
+  <main id="main" tabindex="-1">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <p class="eyebrow">Küçük işletmeler için talep otomasyonu</p>
+        <h1 id="hero-title">E-postadan Excel’e talep taşımayı otomatikleştirin</h1>
+        <p class="lead">
+          Müşteri taleplerini e-postayla alıp Excel’e elle aktaran küçük işletmelere yardımcı oluyoruz.
+          Talepleri kaydetme, sınıflandırma ve yanıtlama adımlarını mevcut araçlarınızı değiştirmeden
+          otomatikleştiriyoruz.
+        </p>
+        <ul class="hero-points" role="list">
+          <li>Mevcut e-posta kutunuz ve tablolarınızla çalışır.</li>
+          <li>Önemli kararlar ekibinizin onayında kalır.</li>
+          <li>Önce küçük bir denemeyle başlar.</li>
+        </ul>
+        <p class="hero-actions">
+          <a class="button" href="#talep">Talep oluştur</a>
+          <a class="text-link" href="#hizmetler">Hizmetlere göz atın</a>
+        </p>
       </div>
+    </section>
 
-      <div class="field">
-        <label for="email">E-posta</label>
-        <input id="email" name="email" type="email" autocomplete="email" spellcheck="false" required
-               aria-describedby="email-error">
-        <p class="field-error" id="email-error" hidden></p>
+    <section id="hizmetler" class="section" aria-labelledby="hizmetler-title">
+      <div class="container">
+        <h2 id="hizmetler-title">Hizmetler</h2>
+        <p class="section-intro">Talep formundaki üç seçenek bu hizmetlere karşılık gelir.</p>
+        <ul class="cards" role="list">
+          <li class="card">
+            <h3 class="card-title">İş akışı otomasyonu</h3>
+            <p>
+              Talep geldiğinde tekrar tekrar yapılan adımları belirlediğiniz kurallara göre otomatik
+              çalıştırırız: tabloya satır eklemek, sorumluya görev atamak, müşteriye alındı bildirimi göndermek.
+            </p>
+          </li>
+          <li class="card">
+            <h3 class="card-title">API ve veri entegrasyonu</h3>
+            <p>
+              E-posta kutunuz, Excel ya da çevrimiçi tablolarınız ve kullandığınız diğer uygulamalar
+              arasında veriyi API’ler üzerinden aktarırız. Aynı bilgi bir kez girilir, diğer yerlere elle
+              kopyalanmaz.
+            </p>
+          </li>
+          <li class="card">
+            <h3 class="card-title">AI destekli talep sınıflandırma</h3>
+            <p>
+              Gelen talepleri konusuna ve aciliyetine göre ayıran bir yapay zekâ adımı ekleriz. Bu adım
+              yalnızca öneri yapar; son kararı her zaman ekibinizden biri verir.
+            </p>
+          </li>
+        </ul>
       </div>
+    </section>
 
-      <div class="field">
-        <label for="service">Hizmet</label>
-        <select id="service" name="service" required aria-describedby="service-error">
-          <option value="">Bir hizmet seçin</option>
-          <option value="workflow-automation">İş akışı otomasyonu</option>
-          <option value="api-integration">API ve veri entegrasyonu</option>
-          <option value="ai-triage">AI destekli talep sınıflandırma</option>
-        </select>
-        <p class="field-error" id="service-error" hidden></p>
+    <section id="ornek" class="section section-muted" aria-labelledby="ornek-title">
+      <div class="container">
+        <h2 id="ornek-title">Kurgusal bir örnek: klima servis işletmesi</h2>
+        <p class="section-intro">
+          Bu işletme ve akış kurgusaldır. Yalnızca hizmetlerin birlikte nasıl çalışabileceğini göstermek
+          için yazıldı.
+        </p>
+        <div class="comparison">
+          <div class="panel">
+            <h3>Bugün: elle yapılan iş</h3>
+            <ol class="flow">
+              <li>Müşteri arızayı e-postayla bildirir; ofis çalışanı gelen kutusunu gün içinde kontrol eder.</li>
+              <li>Çalışan ad, telefon, adres ve arıza bilgisini e-postadan Excel tablosuna kopyalar.</li>
+              <li>Talebin acil olup olmadığına kendisi karar verir ve teknisyeni telefonla arar.</li>
+              <li>Müşteriye talebin alındığını ayrıca yazar; durum değiştikçe tabloyu ve müşteriyi yeniden günceller.</li>
+            </ol>
+          </div>
+          <div class="panel">
+            <h3>Önerilen otomasyon akışı</h3>
+            <ol class="flow">
+              <li>
+                Yeni e-postadaki talep bilgileri ayrıştırılıp tabloya yeni satır olarak eklenir.
+                <span class="tag">API ve veri entegrasyonu</span>
+              </li>
+              <li>
+                Talep “arıza”, “bakım” ya da “fiyat sorusu” olarak sınıflandırılır ve bir aciliyet önerilir;
+                ofis çalışanı öneriyi onaylar ya da düzeltir.
+                <span class="tag">AI destekli talep sınıflandırma</span>
+              </li>
+              <li>
+                Onaylanan talep ilgili teknisyene görev olarak gider; müşteriye otomatik bir alındı mesajı
+                gönderilir.
+                <span class="tag">İş akışı otomasyonu</span>
+              </li>
+              <li>
+                Tablodaki durum değiştiğinde müşteri bilgilendirilir.
+                <span class="tag">İş akışı otomasyonu</span>
+              </li>
+            </ol>
+          </div>
+        </div>
+        <p class="note">
+          Bu örnek için süre ya da maliyet kazancı ölçülmedi. Bir akışın işe yarayıp yaramadığını küçük
+          ölçekli bir denemede birlikte görürüz.
+        </p>
       </div>
+    </section>
 
-      <div class="field">
-        <label for="description">Açıklama</label>
-        <p class="field-hint" id="description-hint">10–2000 karakter. Hangi işi, ne sıklıkla elle yaptığınızı yazın.</p>
-        <textarea id="description" name="description" rows="6" required
-                  aria-describedby="description-hint description-error"></textarea>
-        <p class="field-error" id="description-error" hidden></p>
+    <section id="surec" class="section" aria-labelledby="surec-title">
+      <div class="container">
+        <h2 id="surec-title">Nasıl çalışıyoruz?</h2>
+        <ol class="steps" role="list">
+          <li class="step">
+            <h3>İhtiyacınızı anlatın</h3>
+            <p>Formda bugün elle yaptığınız işi, kullandığınız araçları ve en çok zaman alan adımı yazın.</p>
+          </li>
+          <li class="step">
+            <h3>Akışı birlikte planlayalım</h3>
+            <p>
+              Hangi adımların otomatikleşeceğine, hangilerinin ekibinizin onayında kalacağına ve hangi
+              sistemlere bağlanılacağına birlikte karar veririz.
+            </p>
+          </li>
+          <li class="step">
+            <h3>Küçük ölçekte deneyip doğrulayalım</h3>
+            <p>
+              Akışı önce sınırlı sayıda talepte deneriz. Sonuçları birlikte kontrol eder, beklendiği gibi
+              çalıştığını gördükten sonra kapsamı genişletiriz.
+            </p>
+          </li>
+        </ol>
       </div>
+    </section>
 
-      <button type="submit" id="submit-button">Talebi gönder</button>
+    <section id="talep" class="section section-muted" aria-labelledby="talep-title">
+      <div class="container request-layout">
+        <div class="request-intro">
+          <h2 id="talep-title">Talep oluşturun</h2>
+          <p>Bugün elle yaptığınız işi kısaca anlatın; size uygun hizmeti birlikte belirleyelim.</p>
+          <div class="demo-notice">
+            <p id="demo-notice"><strong>Demo uygulamadır. Yalnızca kurgusal bilgiler kullanın.</strong></p>
+            <p>Gerçek ad, e-posta adresi ya da müşteri bilgisi girmeyin; örneğin <code>ad@example.com</code> gibi bir adres kullanabilirsiniz.</p>
+          </div>
+          <noscript>
+            <p class="form-alert">Formu göndermek için tarayıcınızda JavaScript açık olmalıdır.</p>
+          </noscript>
+        </div>
 
-      <p class="form-status" id="form-status" role="status" tabindex="-1"></p>
-      <p class="form-alert" id="form-alert" role="alert" tabindex="-1"></p>
-    </form>
+        <!-- method="post" keeps the entered values out of the URL even if the script fails to load. -->
+        <form id="request-form" method="post" action="/api/requests" novalidate aria-describedby="demo-notice">
+          <div class="field">
+            <label for="name">Ad soyad</label>
+            <input id="name" name="name" type="text" autocomplete="name" required aria-describedby="name-error">
+            <p class="field-error" id="name-error" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="email">E-posta</label>
+            <input id="email" name="email" type="email" autocomplete="email" spellcheck="false" required
+                   aria-describedby="email-error">
+            <p class="field-error" id="email-error" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="service">Hizmet</label>
+            <select id="service" name="service" required aria-describedby="service-error">
+              <option value="">Bir hizmet seçin</option>
+              <option value="workflow-automation">İş akışı otomasyonu</option>
+              <option value="api-integration">API ve veri entegrasyonu</option>
+              <option value="ai-triage">AI destekli talep sınıflandırma</option>
+            </select>
+            <p class="field-error" id="service-error" hidden></p>
+          </div>
+
+          <div class="field">
+            <label for="description">Açıklama</label>
+            <p class="field-hint" id="description-hint">10–2000 karakter. Hangi işi, ne sıklıkla elle yaptığınızı yazın.</p>
+            <textarea id="description" name="description" rows="6" required
+                      aria-describedby="description-hint description-error"></textarea>
+            <p class="field-error" id="description-error" hidden></p>
+          </div>
+
+          <button type="submit" id="submit-button">Talebi gönder</button>
+
+          <p class="form-status" id="form-status" role="status" tabindex="-1"></p>
+          <p class="form-alert" id="form-alert" role="alert" tabindex="-1"></p>
+        </form>
+      </div>
+    </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        Örnek Otomasyon kurgusal bir şirkettir. Bu sayfa Enteksis uygulama çalışması için hazırlanmış bir
+        demodur: gerçek bir hizmet sunulmaz, yapay zekâ ya da otomasyon çalıştırılmaz. Gönderilen talepler
+        yalnızca demo veritabanına kaydedilir.
+      </p>
+    </div>
+  </footer>
 </body>
 </html>
