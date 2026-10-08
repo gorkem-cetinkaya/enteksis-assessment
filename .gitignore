@@ -1,0 +1,32 @@
+# .NET build output
+bin/
+obj/
+
+# Test results and coverage
+TestResults/
+*.trx
+coverage*.xml
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Local environment files (only the example is committed)
+.env
+.env.*
+!.env.example
+
+# Local database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Local tool settings
+.claude/settings.local.json
+
+# macOS
+.DS_Store
