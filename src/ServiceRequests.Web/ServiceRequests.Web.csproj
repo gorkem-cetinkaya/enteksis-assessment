@@ -10,4 +10,9 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Applied at startup by DatabaseInitializer, so it must sit next to the app. -->
+    <None Update="Data/schema.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
