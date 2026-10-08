@@ -33,6 +33,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # The app exits with code 1 if the database is unreachable at startup;
+    # Docker then starts it again until the database is back.
+    restart: on-failure
 
 volumes:
   postgres-data:

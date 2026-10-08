@@ -33,7 +33,21 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.MapServiceRequestEndpoints();
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception)
+{
+    // The host has already logged the cause (e.g. database unreachable at
+    // startup). Exit with a code instead of letting the exception escape:
+    // in a container where dotnet is PID 1, an unhandled exception leaves the
+    // process hung at 100% CPU instead of stopping it.
+    app.Logger.LogCritical("Startup failed; exiting with code 1.");
+    return 1;
+}
+
+return 0;
 
 // Allows the test project to start the app with WebApplicationFactory<Program>.
 public partial class Program;
