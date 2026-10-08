@@ -127,6 +127,18 @@ public class ServiceRequestEndpointTests
         Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Home_page_serves_the_form_with_the_demo_notice()
+    {
+        await using var app = new TestApp(new RecordingStore());
+        using var client = app.CreateClient();
+
+        var html = await client.GetStringAsync("/");
+
+        Assert.Contains("""<form id="request-form" method="post" action="/api/requests" """, html);
+        Assert.Contains("Demo uygulamadır. Yalnızca kurgusal bilgiler kullanın.", html);
+    }
+
     private static Task<HttpResponseMessage> PostJsonAsync(HttpClient client, string json) =>
         client.PostAsync("/api/requests", new StringContent(json, Encoding.UTF8, "application/json"));
 
