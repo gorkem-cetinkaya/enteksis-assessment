@@ -39,10 +39,21 @@ function focusFirstInvalid(errors) {
   return true;
 }
 
+// The alert shown while fields are marked invalid. It is cleared once no field
+// is marked any more; every other alert stays until the next submit.
+const VALIDATION_SUMMARY = "Lütfen işaretli alanları düzeltin.";
+let alertIsValidationSummary = false;
+
 /** Shows one message: "status" for progress and success, "alert" for problems. */
 function showMessage(kind, text) {
   statusMessage.textContent = kind === "status" ? text : "";
   alertMessage.textContent = kind === "alert" ? text : "";
+  alertIsValidationSummary = false;
+}
+
+function showValidationSummary() {
+  showMessage("alert", VALIDATION_SUMMARY);
+  alertIsValidationSummary = true;
 }
 
 function setSubmitting(value) {
@@ -124,7 +135,7 @@ form.addEventListener("submit", async (event) => {
   const errors = validate(values);
   showFieldErrors(errors);
   if (Object.keys(errors).length > 0) {
-    showMessage("alert", "Lütfen işaretli alanları düzeltin.");
+    showValidationSummary();
     focusFirstInvalid(errors);
     return;
   }
@@ -147,7 +158,7 @@ form.addEventListener("submit", async (event) => {
       break;
     case "invalid":
       showFieldErrors(result.errors);
-      showMessage("alert", "Lütfen işaretli alanları düzeltin.");
+      showValidationSummary();
       if (!focusFirstInvalid(result.errors)) alertMessage.focus();
       break;
     case "network-error":
@@ -198,10 +209,15 @@ form.addEventListener("submit", async (event) => {
   }
 });
 
-// Once a field shows an error, check it again while the user corrects it.
+// Once a field shows an error, check it again while the user corrects it. When
+// the last marked field is fixed, the validation summary goes away as well.
 form.addEventListener("input", (event) => {
   const field = event.target.name;
-  if (FIELDS.includes(field) && form.elements[field].hasAttribute("aria-invalid")) {
-    showFieldError(field, validate(readValues())[field]);
+  if (!FIELDS.includes(field) || !form.elements[field].hasAttribute("aria-invalid")) return;
+
+  showFieldError(field, validate(readValues())[field]);
+  const anyFieldMarked = FIELDS.some((name) => form.elements[name].hasAttribute("aria-invalid"));
+  if (alertIsValidationSummary && !anyFieldMarked) {
+    showMessage("alert", "");
   }
 });
