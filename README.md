@@ -1,6 +1,6 @@
-# Otomasyon talep formu
+# Örnek Otomasyon: tanıtım sayfası ve talep formu
 
-Enteksis uygulama çalışması. Uygulama, müşteri taleplerini e-posta ile Excel arasında elle taşıyan küçük işletmelere otomasyon hizmeti sunan **kurgusal** bir şirketin tanıtım ve talep toplama uygulamasıdır.
+Enteksis uygulama çalışması. Uygulama, müşteri taleplerini e-posta ile Excel arasında elle taşıyan küçük işletmelere otomasyon hizmeti sunan **kurgusal** bir şirketin ("Örnek Otomasyon") tanıtım ve talep toplama uygulamasıdır.
 
 | Hizmet kodu | Hizmet |
 | --- | --- |
@@ -10,7 +10,31 @@ Enteksis uygulama çalışması. Uygulama, müşteri taleplerini e-posta ile Exc
 
 Hizmetler yalnızca tanıtılır. Uygulamada gerçek LLM çağrısı ya da otomasyon motoru yoktur.
 
-> **Durum: 1. aşama.** Formdan gönderilen geçerli talep gerçek bir PostgreSQL veritabanına kalıcı olarak kaydediliyor. Tanıtım sayfasının içeriği ve canlı yayın sonraki aşamalarda yapılacak. Ayrıntılar için [bilinen eksikler](#bilinen-eksikler-ve-sonraki-aşamalar) bölümüne bakın.
+> **Durum: 2. aşama.** Tanıtım sayfası ve talep formu yerelde çalışıyor; geçerli talepler gerçek bir PostgreSQL veritabanına kalıcı olarak kaydediliyor. Güvenlik sağlamlaştırmaları ve canlı yayın sonraki aşamada yapılacak. Ayrıntılar için [bilinen eksikler](#bilinen-eksikler-ve-sonraki-aşamalar) bölümüne bakın.
+
+## Sayfa
+
+Türkçe, mobil uyumlu tek bir sayfadır (`wwwroot/index.html`). Bölümler sırasıyla şunlardır:
+
+1. **Giriş:** Hizmetin kime ve hangi konuda yardımcı olduğunu anlatır ve forma giden "Talep oluştur" bağlantısını içerir.
+2. **Hizmetler:** Üç kart vardır; kart başlıkları formdaki hizmet seçenekleriyle birebir aynıdır. Bu eşleşme bir testle denetlenir.
+3. **Kurgusal örnek:** Bir klima servis işletmesinde bugün elle yapılan işi ve önerilen otomasyon akışını karşılaştırır. Her adımda ilgili hizmet etiketle gösterilir.
+4. **Süreç:** Üç adımdan oluşur: ihtiyacı anlatma, akışı birlikte planlama, küçük ölçekte deneyip doğrulama.
+5. **Talep formu:** Mevcut çalışan form ve hemen yanında kurgusal bilgi kullanılması gerektiğini söyleyen demo uyarısı.
+
+Sayfada gerçek müşteri, referans, başarı oranı ya da ölçülmüş kazanç yoktur. Örnek bölümü kurgusal olduğunu ve ölçüm yapılmadığını açıkça söyler; altbilgi de şirketin kurgusal olduğunu ve demoda yapay zekâ ya da otomasyon çalıştırılmadığını belirtir.
+
+Erişilebilirlik:
+
+- Sayfada tek bir `h1`, her bölüm için bir `h2`, kartlar ve adımlar için `h3` vardır.
+- "İçeriğe geç" atlama bağlantısı ve görünür klavye odağı (3 px çerçeve) bulunur.
+- Form alanlarının görünür etiketleri vardır; hata ve ipucu metinleri alanlara `aria-describedby` ile bağlıdır.
+- Durum mesajları `role="status"`, hata mesajları `role="alert"` bölgelerinde gösterilir.
+- Stil verilmiş listelerde `role="list"` kullanılır.
+- Renk çiftleri WCAG AA'yı karşılar: metinler en az 5,77:1, metin dışı öğeler en az 4,74:1.
+- 320 px genişlikte yatay taşma yoktur.
+
+Harici font, script ya da görsel kullanılmaz.
 
 ## Teknolojiler
 
@@ -50,6 +74,7 @@ Veriler `postgres-data` adlı named volume'de saklanır ve `docker compose down`
 - Uygulama veritabanı bağlantısını yalnızca `ConnectionStrings__Postgres` ortam değişkeninden okur. Değer Npgsql biçiminde olmalıdır: `Host=...;Port=5432;Database=...;Username=...;Password=...`. Değişken tanımlı değilse uygulama açılmaz.
 - `compose.yaml` bu değeri yalnızca yerel geliştirmeye ait varsayılan değerlerle oluşturur. Bu değerleri değiştirmek için `.env.example` dosyasını `.env` adıyla kopyalayıp düzenleyin. `.env` dosyası Git'e eklenmez.
 - PostgreSQL portu bilgisayara açılmaz. Uygulamaya yalnızca `127.0.0.1:8080` üzerinden erişilebilir.
+- Statik dosyalar `Cache-Control: no-cache` başlığıyla sunulur. Tarayıcı her yüklemede dosyayı ETag ile yeniden doğrular; dosya değişmediyse `304` döner. Böylece yeni bir sürümden sonra önbellekteki eski `app.js` kullanılmaz. Bu başlık eklenmeden önce önbelleğe alınmış bir kopya varsa sayfayı bir kez zorla yenilemek (Cmd/Ctrl+Shift+R) gerekebilir.
 
 ## Otomatik testler
 
@@ -62,9 +87,9 @@ node --test tests/client/validation.test.mjs
 
 | Test | Sayı | Kapsam |
 | --- | --- | --- |
-| `ServiceRequestValidatorTests` | 58 | Sunucu tarafı doğrulama kuralları |
-| `ServiceRequestEndpointTests` | 10 | Gerçek HTTP hattı, PostgreSQL yerine bellek içi sahte depo ile: 201, 400, 415, kontrollü 500, listeleme uç noktasının olmaması ve ana sayfa |
-| `tests/client/validation.test.mjs` | 46 | Tarayıcı tarafı kurallar; .NET testleriyle aynı durumlar ve aynı mesajlar |
+| `ServiceRequestValidatorTests` | 69 | Sunucu tarafı doğrulama kuralları |
+| `ServiceRequestEndpointTests` | 20 | Gerçek HTTP hattı, PostgreSQL yerine bellek içi sahte depo ile: 201, 400 (e-posta alan adı dahil), 415, kontrollü 500, listeleme uç noktasının olmaması, sayfa bölümleri, kartlarla form seçeneklerinin ve sunucu hizmet kodlarının eşleşmesi, statik dosyalarda `Cache-Control: no-cache` |
+| `tests/client/validation.test.mjs` | 58 | Tarayıcı tarafı kurallar; .NET testleriyle aynı durumlar ve aynı mesajlar |
 
 Bu testler veritabanına bağlanmaz. Gerçek PostgreSQL ile yapılan kontroller aşağıdadır.
 
@@ -117,7 +142,7 @@ src/ServiceRequests.Web/
   Data/schema.sql                      tekrar çalıştırılabilir tablo kurulumu
   Data/DatabaseInitializer.cs          schema.sql dosyasını açılışta uygular
   Data/PostgresServiceRequestStore.cs  parametreli INSERT ve COMMIT
-  wwwroot/index.html, styles.css       form
+  wwwroot/index.html, styles.css       tanıtım sayfası ve form
   wwwroot/validation.js                tarayıcı tarafı kurallar
   wwwroot/app.js                       gönderim ve durum mesajları
 tests/ServiceRequests.Web.Tests/       xUnit testleri
@@ -126,7 +151,7 @@ tests/client/validation.test.mjs       tarayıcı kurallarının testleri
 
 ## İstekten veritabanına akış
 
-1. **Tarayıcı:** `validation.js`, alanları sunucuyla aynı kurallarla denetler. Hata varsa istek gönderilmez, hatalar alanların altında gösterilir ve odak ilk hatalı alana taşınır. Hata yoksa buton devre dışı kalır, "Gönderiliyor…" yazısı görünür ve `fetch` tek bir JSON POST isteği gönderir. İstek otomatik olarak tekrarlanmaz.
+1. **Tarayıcı:** `validation.js`, alanları sunucuyla aynı kurallarla denetler. Hata varsa istek gönderilmez, hatalar alanların altında gösterilir ve odak ilk hatalı alana taşınır. Hata yoksa dört alan ve buton devre dışı kalır, "Gönderiliyor…" yazısı görünür ve `fetch` tek bir JSON POST isteği gönderir. Böylece beklerken yazılan ve isteğe girmeyecek değişiklikler oluşmaz. Sonuç ne olursa olsun alanlar yeniden açılır. İstek otomatik olarak tekrarlanmaz.
 2. **API (`POST /api/requests`):** Sırasıyla şunlar denetlenir:
    - İçerik türü JSON değilse `415` döner.
    - Gövde ayrıştırılamıyorsa `400` döner.
@@ -193,7 +218,6 @@ Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama 
 
 ## Bilinen eksikler ve sonraki aşamalar
 
-- Tanıtım sayfasının içeriği (hizmetlerin anlatımı) ve görsel tasarım henüz yok; bu aşamada yalnızca sade bir form bulunuyor.
 - Canlı yayın yapılmadı. Render ve Neon'a bağlanılmadı. Canlı ortamda Neon bağlantı dizesi Npgsql biçimine çevrilip `ConnectionStrings__Postgres` olarak verilecek; Render tarafındaki port ayarı da o aşamada kontrol edilecek. Konteyner 8080 portunu dinliyor.
 - Hız sınırı, uygulamaya özel istek gövdesi boyut sınırı ve güvenlik başlıkları (CSP vb.) henüz yok. Şu an Kestrel'in varsayılan gövde sınırı (yaklaşık 30 MB) geçerli.
 - E-postanın yerel kısmı (`@` öncesi) yalnızca boşluk, kontrol karakteri ve `@` açısından denetleniyor. Örneğin `<` ve `>` bu kısımda hâlâ kabul ediliyor.
@@ -201,6 +225,7 @@ Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama 
 - Gerçek PostgreSQL'e bağlanan otomatik entegrasyon testi yok; kalıcılık komut satırından kontrol edildi.
 - JavaScript kapalıyken form gönderilemez. Bu durumda `noscript` uyarısı gösterilir; `method="post"` sayesinde girilen bilgiler URL'ye yazılmaz.
 - Docker dışında `dotnet run` ile çalıştırma belgelenmedi ve denenmedi.
+- Sayfa gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta denenmedi. Hizmet seçim kutusu tarayıcının yerel öğesidir ve otomasyon aracıyla klavyeden sürülemedi; yalnızca seçilmiş değerle klavye akışı denendi.
 - Konteynerde `dotnet` süreci PID 1 olarak çalışıyor. Docker denemesinde, başlangıç hatası sırasında süreç kapanmadan %100'e yakın CPU kullanarak takılı kaldı; `docker run --init` ile ise normal şekilde çıktı. Bu durum çıkış kodu döndürülerek giderildi. Kök neden doğrulanmadı ve başlangıç dışındaki çökme durumları denenmedi. İmaja `tini` gibi bir init süreci eklenmesi yayın aşamasında değerlendirilecek.
 
 ## AI kullanımı

@@ -57,12 +57,12 @@ Bunlar görevde açıkça belirtilmeyen ayrıntılardır. Aday ve Codex inceleme
 - **Şemanın uygulanması:** `DatabaseInitializer`, `schema.sql` dosyasını her açılışta çalıştırır (`CREATE TABLE IF NOT EXISTS`). Aynı yöntem ileride Neon'da da çalışır. Veritabanına ulaşılamazsa uygulama başlamaz ve çıkış kodu 1 ile kapanır. Compose'daki `restart: on-failure` ayarı uygulamayı veritabanı geri gelene kadar yeniden başlatır.
 - **JSON ayrıştırma:** İstek gövdesi bir C# tipine bağlanmadan `JsonDocument` ile elle ayrıştırılır. Böylece eksik, null ya da metin dışı alanlar alan adıyla ilişkili hata mesajlarına dönüşür. Ayrıca JSON olmayan içerik türü için 415, ayrıştırılamayan ya da nesne olmayan gövde için 400 döner.
 - **Karakter, kırpma ve kontrol karakterleri:**
-  - Uzunluk Unicode kod noktası olarak sayılır. C# `EnumerateRunes()`, JavaScript `[...s]` ve PostgreSQL `char_length()` aynı sonucu verir; örneğin bir emoji tek karakter sayılır.
+  - Uzunluk Unicode kod noktası olarak sayılır. C# `EnumerateRunes()`, JavaScript `[...s]` ve PostgreSQL `char_length()` aynı sonucu verir. Örneğin 😀 tek bir kod noktasıdır; birleşik emojiler (ör. 👨‍👩‍👧) birden fazla kod noktası sayılır. Bu ifade 2. aşamada Codex'in notu üzerine düzeltildi; ilk sürümde "bir emoji tek karakter sayılır" yazıyordu.
   - Kırpmada Unicode boşlukları dikkate alınır.
   - Ad ve e-postada kontrol karakterleri reddedilir. Açıklamada sekme ve satır sonu serbesttir.
   - Bu kural görevde yoktu. Gerekçesi: PostgreSQL metinde NUL karakterini saklayamaz; bu, `invalid byte sequence for encoding "UTF8": 0x00` hatasıyla doğrulandı. Kural olmasaydı doğrulamadan geçen bir girdi kayıt sırasında 500 hatasına dönüşebilirdi.
   - Geçersiz UTF-16 kaçışları (tek başına `\ud800`) "geçersiz karakter" hatası olarak döner.
-- **E-posta:** RFC 5322'nin tamamı uygulanmadı; pratik bir kural seçildi. Kural boşluk, kontrol karakteri ve ikinci bir `@` içermeyen bir yerel kısım ister; alan adında en az bir nokta olmalı ve boş etiket bulunmamalıdır.
+- **E-posta:** RFC 5322'nin tamamı uygulanmadı; pratik bir kural seçildi. Kural boşluk, kontrol karakteri ve ikinci bir `@` içermeyen bir yerel kısım ister; alan adında en az bir nokta olmalı ve boş etiket bulunmamalıdır. Bu kural alan adında `/` gibi karakterleri kabul ediyordu; 2. aşamada sıkılaştırıldı (aşağıya bakın).
 - **Hizmet kodu:** Kırpılmaz ve tam eşleşme ile denetlenir.
 - **Kayıt:** INSERT açık bir transaction içinde çalışır. `requestId` yalnızca COMMIT başarılı olduktan sonra döner.
 - **Hata yönetimi:**
@@ -146,8 +146,8 @@ Bu kontroller insan testi değildir. Claude, Claude masaüstü uygulamasının y
 
 #### Yapılamayan veya doğrulanamayan kontroller
 
-- Adayın uygulamayı kullanarak yapacağı manuel test henüz yapılmadı.
-- Codex'in kod ve test incelemesi henüz yapılmadı.
+- Adayın uygulamayı kullanarak yapacağı manuel test bu aşamanın sonunda yapılmamıştı.
+- Codex'in kod ve test incelemesi bu aşamanın sonunda yapılmamıştı. İnceleme daha sonra yapıldı; aşağıdaki "Aşama 1 Codex incelemesi" bölümüne bakın.
 - Gerçek bir ekran okuyucuyla (VoiceOver vb.) test yapılmadı; yalnızca erişilebilirlik ağacı okundu.
 - Yalnızca masaüstü uygulamasının yerleşik tarayıcısı denendi; Safari ve Firefox denenmedi.
 - Gerçek PostgreSQL'e bağlanan otomatik test yok; bu kontroller komut satırından yapıldı.
@@ -156,7 +156,7 @@ Bu kontroller insan testi değildir. Claude, Claude masaüstü uygulamasının y
 
 ### Önerilerin kabulü, değiştirilmesi ve reddi
 
-Aday ve Codex incelemesi henüz yapılmadı. Hangi önerilerin kabul edildiği, değiştirildiği veya reddedildiği inceleme sonrasında bu bölüme eklenecek.
+Bu bölüm 1. aşamanın sonunda boştu. Codex'in incelemesi ve adayın bu incelemeye göre verdiği düzeltme kararları aşağıdaki "Aşama 1 Codex incelemesi" ve "Aşama 2" bölümlerinde kayıtlı.
 
 ### Commit'ler (saat +03)
 
@@ -167,4 +167,188 @@ Aday ve Codex incelemesi henüz yapılmadı. Hangi önerilerin kabul edildiği, 
 | `9d993e0` | 13:14 | Doğrulama ve API testleri |
 | `8b70bdb` | 13:22 | Form ve tarayıcı tarafı doğrulama, istemci testleri |
 | `383b8a7` | 13:31 | Başlangıç hatasında 1 koduyla çıkış ve compose `restart: on-failure` |
-| Bu dosyanın eklendiği commit | — | README ve AI_LOG |
+| `c6779b8` | 13:32 | README ve AI_LOG |
+
+## Aşama 1 Codex incelemesi
+
+Bu bölüm, Codex'in 1. aşama inceleme notunun (`/private/tmp/enteksis-phase1-review-20261008.md`) özetidir. Buradaki kontrolleri Codex yaptı. Claude bunları tekrarlamadı; yalnızca iki bulguyu düzeltmeden önce kendisi yeniden üretti (2. aşama bölümüne bakın). Bu kontroller adayın kişisel manuel testi değildir.
+
+- **Kapsam:** İnceleme 8 Ekim 2026'da `c6779b8` commit'i üzerinde yapıldı. Notta belirtildiğine göre Codex kodu değiştirmedi, commit ya da push yapmadı ve bulut kaynaklarına erişmedi.
+- **Codex'in doğruladıkları (nota göre):**
+  - Build sıfır uyarıyla tamamlandı; `dotnet test` 68/68 ve `node --test` 46/46 geçti.
+  - API testlerinin gerçek veritabanı yerine sahte depo kullandığı koddan doğrulandı.
+  - Gerçek PostgreSQL'de 201 ve UUID döndü; kayıt kırpılmış değerlerle bulundu.
+  - Hatalı istekler 400 aldı ve kayıt sayısı değişmedi.
+  - Veritabanı kesintisinde genel mesajlı bir 500 döndü; yanıtta SQL, bağlantı dizesi ya da stack trace yoktu.
+  - Yeniden başlatmadan sonra kayıtlar korundu.
+  - Ağ erişimi olmayan geçici bir konteynerde başlangıç hatası yaklaşık 0,32 saniyede çıkış kodu 1 ile sonuçlandı. PID 1 sorununun kök nedeni doğrulanmadı.
+  - Tarayıcıda boş formda dört alan hatası gösterildi; geçerli gönderimin kaydı veritabanında bulundu.
+- **Bulgu 1 (P2):** Gönderim sırasında form alanları düzenlenebiliyordu. Başarı yanıtından sonra `form.reset()` beklerken yazılanları da siliyordu. Kanıt kaydı: `88ae8390-584a-48d8-88e2-3635f44ed870`.
+- **Bulgu 2 (P2):** `codex-review@exa/mple.com` adresi hem istemcide hem API'de kabul edilip kaydedildi. Kanıt kaydı: `8f6b47cc-6a98-4597-894a-e37e1b06e634`.
+- **Küçük notlar:**
+  - Genel 500 mesajı kaydın yapılmadığını kesin bir dille söylüyordu.
+  - PID 1 açıklaması kök neden bulunmuş gibi genellenmemeli.
+  - Emoji ifadesi düzeltilmeli.
+  - Hız sınırı, istek boyutu sınırı, güvenlik başlıkları, gerçek veritabanıyla otomatik test ve yayın kontrolleri henüz tamamlanmış sayılmamalı.
+- **Veri:** Codex incelemede 3 kurgusal kayıt ekledi ve toplam 9 oldu; önceki kayıtlar silinmedi.
+
+## Aşama 2: İnceleme düzeltmeleri ve tanıtım sayfası
+
+Aday, inceleme düzeltmelerinin yapılmasını ve ardından tanıtım sayfasının tamamlanmasını istedi. Claude bu aşamanın ilk komutunu 2026-10-08 14:31:30 (+03) saatinde çalıştırdı.
+
+### Görev özeti
+
+Aday mesajının özeti:
+
+- **İnceleme düzeltmeleri:**
+  - Gönderim sırasında dört alan devre dışı kalacak, işlem bitince yeniden açılacak ve hatalarda girdiler korunacak. Bu, geciktirilmiş yanıtla tarayıcıda doğrulanacak.
+  - `codex-review@exa/mple.com` adresinin kabul edilmesi, basit ve belgelenmiş bir alan adı kuralıyla düzeltilecek. C# ve JavaScript kuralları aynı olacak; alt alan adları ve `+` içeren adresler çalışmaya devam edecek. Doğrulama ve API testleri eklenecek.
+  - 500 mesajı, PID 1 açıklaması ve Unicode sayımıyla ilgili küçük düzeltmeler yapılacak.
+  - Gözlenmemiş bir senaryo test edilmiş gibi yazılmayacak.
+- **Tanıtım sayfası:** Aynı `wwwroot` yapısında, Türkçe ve mobil uyumlu tek bir sayfa. Bölümler sırasıyla:
+  - giriş ve "Talep oluştur" bağlantısı
+  - form seçenekleriyle birebir eşleşen üç hizmet kartı
+  - kısa ve kurgusal bir önce/sonra örneği
+  - üç adımlık süreç
+  - mevcut form
+- **Sayfa koşulları:**
+  - Erişilebilirlik: başlık hiyerarşisi, kontrast, görünür odak, alan etiketleri ve durum mesajları.
+  - 320 px genişlikte yatay taşma olmayacak.
+  - Formun yanında kurgusal bilgi kullanılması gerektiği yazacak.
+  - Gerçek müşteri, referans, başarı oranı ya da ölçülmüş kazanç uydurulmayacak; gerçek LLM entegrasyonu eklenmeyecek.
+- **Kapsam dışı:** Render ve Neon bağlantısı, yayın, remote ve push, yönetim paneli, kapsamlı idempotency altyapısı.
+- **Belgeler ve Git:**
+  - Codex incelemesi, Claude'un kontrolleri ve adayın kişisel manuel testi ayrı ayrı kaydedilecek.
+  - Aday bildirmeden kişisel manuel testi tamamlanmış sayılmayacak.
+  - Anlamlı İngilizce commit'ler kullanılacak; geçmiş commit'ler yeniden yazılmayacak.
+
+### İnceleme bulgularının düzeltilmesi
+
+#### 1. Gönderim sırasında düzenlenebilen alanlar (`61f8bb0`)
+
+- **Yeniden üretme:** Claude bulguyu önce kendisi üretti. Tarayıcıda `fetch` geçici olarak bekletildi; sunucuya istek gitmedi. Bekleme sırasında dört alanın da düzenlenebilir olduğu ve beklerken değiştirilen açıklamanın başarı yanıtından sonra silindiği görüldü.
+- **Düzeltme:** `setSubmitting()` artık dört alanı butonla birlikte kapatıyor ve sonuç ne olursa olsun yeniden açıyor. Devre dışı alanlara görünür bir stil eklendi.
+- **Doğrulama:** Claude bunları tarayıcıda yaptı; insan testi değildir.
+  - **Gerçek gecikme:** Ayrı bir psql oturumu tabloyu 20 saniye boyunca `ACCESS EXCLUSIVE` kilidiyle tuttu.
+    - Bekleme sırasında dört alan ve buton devre dışıydı; "Gönderiliyor…" yazısı görünüyordu ve `aria-busy` değeri `true` idi.
+    - Açıklama alanına tıklayıp yazmayı denemek değeri değiştirmedi.
+    - Kilit açılınca başarı mesajı geldi, alanlar yeniden açıldı ve form temizlendi.
+    - Kayıt (`62e20df4-2724-4f0a-85a5-1086f3e1eb94`) psql ile bulundu ve yalnızca gönderilen açıklamayı içeriyordu.
+  - **Simüle edilmiş gecikmeli 500:** `fetch` 3 saniye sonra 500 döndürdü; istek gönderilmedi. Bekleme sırasında alanlar kapalıydı, sonra açıldı; girdiler korundu ve uyarı gösterildi.
+  - **Gerçek ağ hatası (uygulama konteyneri durduruldu):** Alanlar açıldı ve girdiler korundu.
+- **Not:** İlk doğrulama denemesinde tarayıcı önbellekteki eski `app.js` dosyasını çalıştırdı (bkz. 2. madde). Bu deneme bulguyu gerçek gecikmeyle bir kez daha gösterdi: kayıt `568644a5-5f98-4cc5-8166-fd54d4fac8bd` gönderilen açıklamayı içeriyor; beklerken eklenen " EK" ise form temizlenince kayboldu.
+
+#### 2. Önbellekteki eski script (`40c768e`)
+
+Bu sorunu Claude doğrulama sırasında buldu.
+
+- **Gözlem:** Konteyner yeniden derlendikten sonra sunucu yeni `app.js` dosyasını veriyordu. Ancak yanıtta `Cache-Control` başlığı olmadığı için tarayıcı eski kopyayı kendi tahminine göre taze sayıp kullanmaya devam etti.
+- **Düzeltme:** Statik dosyalar `Cache-Control: no-cache` başlığıyla sunuluyor; tarayıcı her yüklemede dosyayı ETag ile yeniden doğruluyor.
+- **Doğrulama:** Başlık curl ile görüldü. `If-None-Match` ile yapılan istek `304` döndü. Dört statik yol için test eklendi.
+- **Not:** Bu başlık eklenmeden önce önbelleğe alınmış kopyalar için sayfanın bir kez zorla yenilenmesi gerekebilir. Claude kendi tarayıcısındaki kopyaları `fetch(..., { cache: "reload" })` ile yeniledi.
+
+#### 3. E-posta alan adı kuralı (`6ea019f`)
+
+- **Önce testler:** Yeni durumlar yazıldı ve eski kuralda başarısız oldukları görüldü: .NET'te 6 ret durumu ve 1 API testi, Node'da 6 ret durumu.
+- **Yeni kural (C# ve JavaScript'te aynı desen):** Alan adı noktayla ayrılmış en az iki etiketten oluşur. Her etiket harf ya da rakamla başlayıp biter; arada harf, rakam ve tire bulunabilir.
+  - Reddedilenler: `/`, `<`, `>`, `_`, tireyle başlayan ya da biten etiketler ve boş etiketler.
+  - Kabul edilenler: alt alan adları, `+` içeren adresler, Unicode harfli alan adları (`örnek.com.tr`) ve punycode (`xn--…`).
+  - Yerel kısım değişmedi; README'de bilinen eksik olarak not edildi.
+- **Doğrulama:** O sırada .NET 84/84 ve Node 56/56 geçti. Çalışan API'de `codex-review@exa/mple.com` ve `deniz@exa<mple.com` 400 aldı; `deniz+test@mail.example.com.tr` ve `deniz@örnek.com.tr` 201 aldı.
+
+#### 4. Küçük düzeltmeler (`4b472fe`)
+
+- **500 mesajı:** "Talebinizin kaydedildiğini doğrulayamadık. Lütfen bir süre sonra tekrar deneyin." oldu.
+  - COMMIT'ten sonra bağlantının kopması senaryosu denenmedi; yeni ifade kod yolundaki olası sonuca dayanıyor.
+  - Veritabanı durdurularak çalışan API'de yeni mesaj görüldü.
+  - Otomatik tekrar eklenmedi.
+- **PID 1:** `Program.cs` yorumu yalnızca Docker denemesinde gözleneni anlatıyor ve kök neden iddiası taşımıyor.
+- **Unicode:** İfadeler "kod noktası" olarak düzeltildi. Birleşik bir emojinin (👨‍👩‍👧, 5 kod noktası) birden fazla sayıldığını gösteren testler .NET'e ve Node'a eklendi: ad alanında 20 tanesi kabul ediliyor (100 kod noktası), 21 tanesi reddediliyor (105).
+
+### Tanıtım sayfası (`2583168`)
+
+Claude'un verdiği kararlar:
+
+- **Şirket adı:** Kurgusal şirkete "Örnek Otomasyon" adı verildi. Bu adla şirketin kurgu olduğu açıkça anlaşılıyor ve gerçek bir şirket taklit edilmiyor.
+- **İçerik:**
+  - Bölümler istenen sırada.
+  - Örnek bölümü kurgusal bir klima servis işletmesini anlatıyor. Bölümün kurgusal olduğu ve "süre ya da maliyet kazancı ölçülmedi" sayfada açıkça yazıyor.
+  - Önerilen akışın her adımında ilgili hizmetin etiketi var.
+  - AI sınıflandırma "yalnızca öneri yapar, son karar ekiptedir" diye anlatıldı.
+  - Altbilgide demoda yapay zekâ ya da otomasyon çalıştırılmadığı belirtiliyor.
+- **Tasarım:** Sistem fontları kullanıldı; harici font, script ya da görsel yok. Açık renkli kartlar ve paneller var; dar ekranda düzen tek sütuna iniyor.
+- **Erişilebilirlik:**
+  - Tek bir `h1` ve altında `h2`/`h3` hiyerarşisi.
+  - Atlama bağlantısı ve `:focus-visible` ile 3 px odak çerçevesi.
+  - Stil verilmiş listelerde `role="list"`.
+  - Alan etiketleri, `aria-describedby` bağlantıları ve `status`/`alert` bölgeleri.
+  - `prefers-reduced-motion` açıkken yumuşak kaydırma kapanıyor.
+- **Form:** ID'leri değiştirilmeden yeni bölüme taşındı. Demo uyarısının tam metni korundu ve yanına örnek bir adres ipucu eklendi.
+
+### Claude'un yaptığı kontroller
+
+Bu kontroller insan testi değildir.
+
+#### Otomatik testler (aşama sonu)
+
+| Komut | Sonuç |
+| --- | --- |
+| `dotnet build ServiceRequests.slnx` | Başarılı; 0 uyarı, 0 hata |
+| `dotnet test ServiceRequests.slnx` | 89/89 başarılı: `ServiceRequestValidatorTests` 69, `ServiceRequestEndpointTests` 20 |
+| `node --test tests/client/validation.test.mjs` | 58/58 başarılı |
+
+#### Komut satırıyla yapılan entegrasyon kontrolleri
+
+- E-posta kuralı çalışan API'de denendi; sonuçlar yukarıdaki 3. maddede.
+- Veritabanı durdurulmuşken API yeni 500 mesajını döndürdü.
+- Statik dosyalarda `Cache-Control: no-cache` başlığı vardı; ETag ile yapılan istek `304` döndü.
+- Gecikme için tablo psql ile kilitlendi; ilgili kayıtlar `62e20df4-…` ve `568644a5-…` psql ile bulundu.
+
+#### Tarayıcıda yapılan arayüz kontrolleri
+
+| Kontrol | Sonuç |
+| --- | --- |
+| Masaüstü (1024×768) | Yatay taşma yok; bölümler istenen sırada. Başlık yapısı: 1 `h1`, 4 `h2` ve altlarında `h3`'ler. Kart başlıkları form seçenekleriyle aynı. |
+| 320 px genişlik | Yatay taşma yok ve sağ kenarı aşan öğe yok. Kartlar, paneller ve adımlar tek sütunda. |
+| Klavye: atlama bağlantısı | İlk Tab'da 3 px çerçeveyle göründü; Enter ile odak `main` öğesine geçti. |
+| Klavye: "Talep oluştur" | Enter ile `#talep` bölümüne gidildi; sonraki Tab ilk alana geçti. Sıra: Ad soyad → E-posta → Hizmet → Açıklama → Talebi gönder. Her öğede 3 px çerçeve vardı. |
+| Klavye: boş gönderim | Dört alan hatası göründü; odak Ad soyad alanına geçti. |
+| Klavye: geçerli gönderim | Talep numarasıyla başarı mesajı göründü, odak bu mesaja geçti ve form temizlendi. Kayıt (`0ea4ee4a-ee2a-43c1-b7e7-41171334a186`) psql ile bulundu. Hizmet `form_input` ile seçildi; aşağıdaki nota bakın. |
+| Gerçek veritabanı hatası | Yeni 500 mesajı göründü; girdiler korundu, alanlar açık kaldı ve odak uyarıya geçti. |
+| DOM denetimi | Dört alanın da etiketi var ve `aria-describedby` hedeflerinin hepsi mevcut. Form demo uyarısıyla ilişkili ve `lang="tr"` tanımlı. Konsolda yalnızca bilerek oluşturulan 500 hatası var. |
+| Kontrast (Node betiğiyle hesaplandı) | Metin çiftlerinin en düşüğü 5,77:1; metin dışı öğelerin (alan kenarlığı, odak çerçevesi) en düşüğü 4,74:1. |
+
+Aşağıdakiler test aracının sınırlarıdır, sayfa sorunu değildir:
+
+- İlk klavye denemelerinde araç tuşları metin henüz işlenmeden gönderdi, bu yüzden Tab bir alanda kaldı. Tuşlar arasında 1 saniye beklenince sıra doğru çalıştı.
+- Araç, yerel `<select>` öğesinde harf yazarak seçim yapamadı; metin son metin alanına eklendi. Bu yüzden hizmet `form_input` ile seçildi. Seçim kutusunun klavyeyle kullanımı tarayıcının yerel davranışıdır ve bu araçla doğrulanamadı.
+
+#### Yapılamayan veya doğrulanamayan kontroller
+
+- Adayın kişisel manuel testinin durumu aşağıdaki bölümde.
+- Codex'in 2. aşama incelemesi henüz yapılmadı.
+- Gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta test yapılmadı.
+- Yerel seçim kutusunun klavyeyle kullanımı araçla doğrulanamadı.
+- COMMIT'ten sonra bağlantının kopması senaryosu yeniden üretilmedi.
+- PID 1 sorununun kök nedeni araştırılmadı.
+- Render ve Neon bu aşamanın kapsamı dışında.
+
+### Commit'ler (saat +03)
+
+| Commit | Saat | İçerik |
+| --- | --- | --- |
+| `61f8bb0` | 14:35 | Gönderim sırasında dört alanın devre dışı bırakılması |
+| `40c768e` | 14:35 | Statik dosyalarda `Cache-Control: no-cache` ve testi |
+| `6ea019f` | 14:37 | E-posta alan adı kuralı, .NET/Node/API testleri, README |
+| `4b472fe` | 14:38 | 500 mesajı, PID 1 yorumu, Unicode ifadeleri ve birleşik emoji testleri |
+| `2583168` | 14:46 | Tanıtım sayfası, stiller ve sayfa testleri |
+| Bu bölümün eklendiği commit | — | README ve AI_LOG |
+
+## Adayın kişisel manuel testi
+
+| Aşama | Durum |
+| --- | --- |
+| 1. aşama | Aday kişisel manuel test yaptığını henüz bildirmedi; tamamlanmış sayılmıyor. |
+| 2. aşama | Aday kişisel manuel test yaptığını henüz bildirmedi; tamamlanmış sayılmıyor. |
+
+Aday bildirdiğinde, yaptığı kontroller ve sonuçları bu bölüme eklenecek.
