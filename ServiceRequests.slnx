@@ -3,6 +3,7 @@
     <Project Path="src/ServiceRequests.Web/ServiceRequests.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ServiceRequests.Web.IntegrationTests/ServiceRequests.Web.IntegrationTests.csproj" />
     <Project Path="tests/ServiceRequests.Web.Tests/ServiceRequests.Web.Tests.csproj" />
   </Folder>
 </Solution>
