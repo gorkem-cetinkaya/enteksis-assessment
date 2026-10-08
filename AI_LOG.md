@@ -326,7 +326,7 @@ Aşağıdakiler test aracının sınırlarıdır, sayfa sorunu değildir:
 #### Yapılamayan veya doğrulanamayan kontroller
 
 - Adayın kişisel manuel testinin durumu aşağıdaki bölümde.
-- Codex'in 2. aşama incelemesi henüz yapılmadı.
+- Codex'in 2. aşama incelemesi bu aşamanın sonunda yapılmamıştı. İnceleme daha sonra yapıldı; aşağıdaki "Aşama 2 Codex incelemesi" bölümüne bakın.
 - Gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta test yapılmadı.
 - Yerel seçim kutusunun klavyeyle kullanımı araçla doğrulanamadı.
 - COMMIT'ten sonra bağlantının kopması senaryosu yeniden üretilmedi.
@@ -456,7 +456,7 @@ Not: Ana makinede `DOCKER_HOST` var olmayan bir sokete yönlendirildiğinde test
 #### Yapılamayan veya doğrulanamayan kontroller
 
 - Render ve Neon üzerinde çalıştırma, HTTPS davranışı ve gerçek Neon TLS bağlantısı (`VerifyFull`) denenmedi; bunlar yayın aşamasında yapılacak.
-- Codex'in 3. aşama incelemesi henüz yapılmadı.
+- Codex'in 3. aşama incelemesi bu aşamanın sonunda yapılmamıştı. İnceleme daha sonra yapıldı; aşağıdaki "Aşama 3 Codex incelemesi" bölümüne bakın.
 - Gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta test yapılmadı.
 - Tini'nin başlangıç dışındaki çökme durumlarındaki davranışı denenmedi. Eski CPU takılmasının kök nedeni araştırılmadı.
 
@@ -472,7 +472,71 @@ Not: Ana makinede `DOCKER_HOST` var olmayan bir sokete yönlendirildiğinde test
 | `025c73f` | 20:23 | `GET /health` ve testleri |
 | `ab2ed98` | 20:24 | Konteynerde tini |
 | `f4e0437` | 20:27 | Testcontainers ile gerçek PostgreSQL testleri |
-| Bu bölümün eklendiği commit | — | README ve AI_LOG |
+| `2b60190` | 20:31 | README ve AI_LOG |
+
+## Aşama 3 Codex incelemesi
+
+Bu bölüm, Codex'in 3. aşama inceleme notunun (`/private/tmp/enteksis-phase3-review.md`) özetidir. Buradaki kontrolleri Codex yaptı; bunlar adayın kişisel manuel testi değildir.
+
+- **Kapsam ve sonuç:**
+  - İnceleme 8 Ekim 2026'da `2b601907be0ea85d18cd5e15a581c3311432bc02` commit'i üzerinde yapıldı.
+  - İncelenen kapsamda yayına geçmeyi engelleyen yeni bir bulgu yok; 3. aşama kabul edilebilir bulundu.
+  - Notta bu sonucun canlı ortamın doğrulandığı ya da olası bütün hataların elendiği anlamına gelmediği açıkça belirtiliyor.
+  - Codex uygulama kaynaklarını değiştirmedi, commit oluşturmadı, Git geçmişini değiştirmedi, push yapmadı ve Render ile Neon'a bağlanmadı.
+- **Kod incelemesi:**
+  - E-posta düzeltmeleri ve iki dildeki doğrulama kuralları
+  - Gövde okuma sınırı ve hız sınırlama politikası
+  - Güvenlik başlıklarının ara katmandaki sırası ve hata yanıtlarına uygulanması
+  - `/health`, Npgsql kayıt işlemi ve Docker/tini ayarları
+  - Gerçek PostgreSQL testlerinin ayrı konteynerler kullanması
+  - README ve AI_LOG
+- **Yeniden çalıştırılan otomatik kontroller:**
+  - Derlemede 0 uyarı ve 0 hata vardı.
+  - Uygulama testleri 122/122, gerçek PostgreSQL testleri 4/4 ve JavaScript testleri 75/75 geçti; atlanan test yoktu.
+  - Toplam 201 otomatik test geçti.
+- **Gerçek Kestrel kontrolleri:** Codex, çalışan 8080 uygulamasının hız sayacını etkilememek için aynı imajdan, yerel PostgreSQL'e bağlı geçici bir uygulama konteyneri açtı (port 18080) ve iş bitince yalnızca bu konteyneri kaldırdı. Bu konteynerde:
+  - `/health`, sayfa, CSS ve JS 200 döndü; bilinmeyen adres 404 aldı.
+  - `codex<phase2>@example.com` ve satır sonu içeren yerel kısım reddedildi; `codex@𐐀.example` e-posta açısından geçerli sayıldı.
+  - Tam 32 KiB gövde doğrulamaya ulaştı (400); 32 KiB + 1 bayt hem `Content-Length` ile hem chunked gönderimde 413 aldı.
+  - 21. POST 429 ve pozitif bir `Retry-After` aldı.
+  - 200, 400, 404, 413 ve 429 yanıtlarında güvenlik başlıkları vardı; 500 için otomatik test yeterli görüldü.
+  - `tini` ve `dotnet` UID 1654 altında, üst ve alt süreç olarak çalışıyordu.
+  - Kayıt sayısı kontrollerden önce ve sonra 19 idi.
+- **Tarayıcı kontrolü (Codex'in uygulama içi tarayıcısında):**
+  - `codex<phase2>@example.com` alan hatası verdi; odak e-posta alanına geçti ve form verileri korundu.
+  - `codex@𐐀.example` ile yapılan gerçek gönderim başarılı oldu; form sıfırlandı ve odak başarı mesajına geçti.
+  - Talep numarası `0eb1f5fd-9fab-4f60-8a24-ea08c90327c1` gerçek PostgreSQL'de bulundu (hizmet `api-integration`).
+  - Tarayıcı günlüğünde hata ya da uyarı yoktu; sayfa CSP altında çalıştı.
+  - Kayıt sayısı 20 oldu: yalnızca bir kurgusal kayıt eklendi.
+  - 30 saniyelik zaman aşımı, ekran okuyucu, Safari/Firefox ve dar ekran kontrolleri bu incelemede yeniden yapılmadı.
+- **Git ve sır taraması:**
+  - `main` dalında 21 commit vardı; bütün commit'lerde yazarın GitHub noreply adresi kullanılmış ve Claude `Co-Authored-By` kayıtları korunmalı.
+  - Geçmişteki 83 benzersiz dosya içeriği yaygın erişim anahtarı, özel anahtar ve parolalı PostgreSQL URI kalıpları açısından tarandı; eşleşme bulunmadı.
+  - Geçmişte `.env` (örnek dosya hariç), özel anahtar ya da yerel veritabanı dosyası yoktu.
+  - Notta bu sınırlı taramanın bütün sır türleri için garanti olmadığı belirtiliyor.
+- **Yayın öncesi notlar:**
+  - Neon projesi zaten mevcut ve README buna göre güncellenmeli.
+  - Yayın yapılmadan canlı adres, SHA ya da sonuç yazılmamalı.
+  - Aday GitHub deposunun Public olmasını 8 Ekim'de açıkça seçti.
+
+## Aşama 4: Yayın hazırlığı (sürüyor)
+
+Aday `/private/tmp/enteksis-phase4-task.md` dosyasındaki planla 4. aşamaya geçti. Bu turun kapsamı belgelerin güncellenmesi ve GitHub aktarımıdır; Render ve Neon'da işlem yapılmadı. Claude bu turun ilk komutunu 2026-10-08 23:04:06 (+03) saatinde çalıştırdı.
+
+- **Aday tarafından yapılanlar:**
+  - GitHub'da `gorkem-cetinkaya/enteksis-assessment` deposunu Public ve boş olarak oluşturdu.
+  - Neon projesini hazırladı: `enteksis-assessment`, Frankfurt, dal `production`, veritabanı `neondb`, rol `neondb_owner`, connection pooling açık.
+  - Render hesabını hazırladı; Render web servisi henüz oluşturulmadı.
+- **Claude'un bu turdaki işi:**
+  - README'deki Neon adımı mevcut projeyi kullanacak şekilde güncellendi: pooler adresi ve Npgsql anahtar/değer biçimi; `postgresql://` URI'si kullanılmıyor ve sertifika doğrulaması kapatılmıyor.
+  - Render adımlarına `main` dalı ve Free instance eklendi.
+  - Codex'in 3. aşama incelemesi bu dosyaya eklendi.
+- **Doğrulama (Claude, oturum açmadan):**
+  - Hedef depo `gorkem-cetinkaya/enteksis-assessment`, public ve boştu: `git ls-remote` ref döndürmedi, GitHub API boyutu 0 gösterdi.
+  - Yerelde `main` dalında 21 commit vardı, çalışma ağacı temizdi ve remote tanımlı değildi.
+- **Henüz yapılmayanlar:**
+  - GitHub aktarımı bu belge commit'inden sonra normal push ile yapılacak; sonucu bir sonraki belge güncellemesinde kaydedilecek.
+  - Canlı yayın, canlı doğrulama ve adayın canlı formu denemesi henüz yapılmadı.
 
 ## Adayın kişisel manuel testi
 

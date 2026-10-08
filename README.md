@@ -299,22 +299,32 @@ Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama 
 
 Bu adımlar henüz uygulanmadı; yayın aşamasında izlenecek. Gerçek bağlantı bilgileri yalnızca Render'ın ortam değişkenlerine girilir; repoya ya da sohbete yazılmaz.
 
-1. **Neon:**
-   - AWS Europe Central 1 (Frankfurt) bölgesinde bir proje oluşturulur.
-   - Konsolun .NET bağlantı penceresinden Npgsql biçimindeki bağlantı bilgisi alınır. Biçim (yer tutucularla):
+1. **Neon:** Neon projesi zaten mevcut; ikinci bir proje oluşturulmaz. Mevcut kaynaklar:
+   - Proje `enteksis-assessment`, bölge AWS Europe Central 1 (Frankfurt)
+   - Dal `production`, veritabanı `neondb`, rol `neondb_owner`
+   - Connection pooling açık; bu yüzden `Host` olarak pooler adresi kullanılır.
+
+   Bağlantı bilgisi konsolun .NET bağlantı penceresinden alınır ve Npgsql anahtar/değer biçiminde verilir. Biçim (yer tutucularla):
 
      ```text
-     Host=<neon-host>;Port=5432;Database=<veritabanı>;Username=<kullanıcı>;Password=<parola>;SSL Mode=VerifyFull;Channel Binding=Require
+     Host=<neon-pooler-host>;Port=5432;Database=neondb;Username=neondb_owner;Password=<parola>;SSL Mode=VerifyFull;Channel Binding=Require
      ```
+
+   - Uygulama `postgresql://...` URI biçimini doğrudan ayrıştırmaz; yalnızca yukarıdaki anahtar/değer biçimi kullanılır.
+   - Sertifika doğrulaması kapatılmaz.
+   - Gerçek parola yerel bir dosyaya, `appsettings` dosyasına ya da repoya yazılmaz; yalnızca Render'ın gizli ortam değişkeni alanına girilir.
 
    - `SSL Mode=VerifyFull` ile Npgsql sunucu sertifikasını makinenin CA deposuyla doğrular ve bağlanılan sunucunun belirtilen sunucu olduğunu denetler. Npgsql'in varsayılanı `Prefer`'dır; `Prefer` ve `Require` ortadaki adam saldırısına karşı koruma sağlamaz. Bu bilgiler Npgsql güvenlik belgesine dayanıyor; Neon'un .NET rehberi de `SSL Mode=VerifyFull; Channel Binding=Require` öneriyor. Çalışma imajında CA sertifikaları (`/etc/ssl/certs/ca-certificates.crt`) bulunuyor.
    - Tablo, uygulama ilk açıldığında `schema.sql` ile oluşturulur; elle kurulum gerekmez.
-2. **Render:** New → Web Service ile depo seçilir. Ayarlar:
+2. **Render:** New → Web Service ile GitHub deposu seçilir. Ayarlar:
    - Runtime: Docker (repodaki `Dockerfile`, build context depo kökü)
+   - Branch: `main`
    - Region: Frankfurt
+   - Instance: Free
    - Health Check Path: `/health`
    - `ConnectionStrings__Postgres`: Neon bağlantı dizesi, gizli ortam değişkeni olarak
    - `PORT`: `8080`
+   - `RENDER_GIT_COMMIT` elle girilmez; değeri Render sağlar.
 3. **Port uyumu:** Render belgelerine göre web servisi `0.0.0.0` adresine bağlanmalı ve `PORT` değişkeninin varsayılanı `10000`'dir. Uygulama `ASPNETCORE_HTTP_PORTS=8080` ile tüm adreslerde 8080 portunu dinlediği için Render'da `PORT=8080` verilmelidir; iki değer aynı olmalı.
 4. **Commit bilgisi:** `RENDER_GIT_COMMIT` değişkenini Render ayarlar ("the commit SHA for a service or deploy"). `/health` yanıtındaki `commit` bu değeri gösterir.
 5. **Yayından sonra:**
