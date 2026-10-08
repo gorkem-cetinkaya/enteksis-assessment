@@ -136,7 +136,7 @@ public class ServiceRequestEndpointTests
         Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
 
         var text = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Talep şu anda kaydedilemedi.", text);
+        Assert.Contains("Talebinizin kaydedildiğini doğrulayamadık.", text);
         Assert.DoesNotContain("requestId", text);
         Assert.DoesNotContain(FailingStore.SecretDetail, text);
         Assert.DoesNotContain("INSERT", text);

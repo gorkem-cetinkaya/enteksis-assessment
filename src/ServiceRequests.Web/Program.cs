@@ -46,9 +46,10 @@ try
 catch (Exception)
 {
     // The host has already logged the cause (e.g. database unreachable at
-    // startup). Exit with a code instead of letting the exception escape:
-    // in a container where dotnet is PID 1, an unhandled exception leaves the
-    // process hung at 100% CPU instead of stopping it.
+    // startup). Return an exit code instead of letting the exception escape.
+    // In our Docker test, an unhandled startup exception left the process
+    // running at ~100% CPU while dotnet was PID 1 (under docker run --init it
+    // exited); the root cause was not investigated further.
     app.Logger.LogCritical("Startup failed; exiting with code 1.");
     return 1;
 }

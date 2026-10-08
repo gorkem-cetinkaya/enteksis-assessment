@@ -6,8 +6,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { isValidRequestId, validate } from "../../src/ServiceRequests.Web/wwwroot/validation.js";
 
-// U+1F600: one character, but two UTF-16 code units in a JavaScript string.
+// U+1F600: one code point, but two UTF-16 code units in a JavaScript string.
 const EMOJI = "\u{1F600}";
+// Family emoji: three emoji joined by two zero-width joiners (U+200D), so
+// five code points although it is drawn as one symbol.
+const FAMILY_EMOJI = "\u{1F468}‍\u{1F469}‍\u{1F467}";
 
 // All test data is fictional; example.com is a reserved domain.
 const validValues = () => ({
@@ -43,6 +46,7 @@ const rejected = [
   ["name", "  D  ", "Ad soyad en az 2 karakter olmalıdır."],
   ["name", "a".repeat(101), "Ad soyad en fazla 100 karakter olabilir."],
   ["name", EMOJI, "Ad soyad en az 2 karakter olmalıdır."],
+  ["name", FAMILY_EMOJI.repeat(21), "Ad soyad en fazla 100 karakter olabilir."],
   ["name", "Deniz\nÖrnek", "Ad soyad geçersiz karakter içeriyor."],
   ["name", "Deniz\tÖrnek", "Ad soyad geçersiz karakter içeriyor."],
   ["name", "Deniz\u0000Örnek", "Ad soyad geçersiz karakter içeriyor."],
@@ -90,6 +94,7 @@ const accepted = [
   ["name", "aa"],
   ["name", "a".repeat(100)],
   ["name", EMOJI.repeat(100)],
+  ["name", FAMILY_EMOJI.repeat(20)],
   ["email", "deniz+test@mail.example.com.tr"],
   ["email", "d@e.co"],
   ["email", "deniz@my-company.example.com"],

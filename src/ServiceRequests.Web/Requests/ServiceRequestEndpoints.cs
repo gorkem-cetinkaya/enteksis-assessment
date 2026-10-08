@@ -67,12 +67,14 @@ public static class ServiceRequestEndpoints
             {
                 // Full details go to the server log only. The client gets a
                 // generic message: no SQL, connection string or stack trace.
+                // It does not claim the request was not saved: if the
+                // connection drops right after COMMIT, the row may exist.
                 loggerFactory.CreateLogger(typeof(ServiceRequestEndpoints))
                     .LogError(exception, "Saving a service request failed");
 
                 return TypedResults.Problem(
                     statusCode: StatusCodes.Status500InternalServerError,
-                    title: "Talep şu anda kaydedilemedi. Lütfen daha sonra tekrar deneyin.");
+                    title: "Talebinizin kaydedildiğini doğrulayamadık. Lütfen bir süre sonra tekrar deneyin.");
             }
         }
     }

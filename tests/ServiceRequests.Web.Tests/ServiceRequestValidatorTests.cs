@@ -6,8 +6,12 @@ namespace ServiceRequests.Web.Tests;
 
 public class ServiceRequestValidatorTests
 {
-    // U+1F600: one character, but two UTF-16 code units in a .NET string.
+    // U+1F600: one code point, but two UTF-16 code units in a .NET string.
     private const string Emoji = "\U0001F600";
+
+    // Family emoji: three emoji joined by two zero-width joiners (U+200D), so
+    // five code points although it is drawn as one symbol.
+    private const string FamilyEmoji = "\U0001F468‍\U0001F469‍\U0001F467";
 
     // All test data is fictional; example.com is a reserved domain.
     private static JsonObject ValidBody() => new()
@@ -140,10 +144,19 @@ public class ServiceRequestValidatorTests
     }
 
     [Fact]
-    public void Name_length_counts_characters_not_utf16_code_units()
+    public void Name_length_counts_code_points_not_utf16_code_units()
     {
         Assert.Equal("Ad soyad en az 2 karakter olmalıdır.", SingleError(ValidateWith("name", Emoji), "name"));
         Assert.NotNull(ValidateWith("name", string.Concat(Enumerable.Repeat(Emoji, 100))).Request);
+    }
+
+    [Fact]
+    public void Combined_emoji_counts_as_several_code_points()
+    {
+        Assert.NotNull(ValidateWith("name", string.Concat(Enumerable.Repeat(FamilyEmoji, 20))).Request); // 100
+        Assert.Equal(
+            "Ad soyad en fazla 100 karakter olabilir.",
+            SingleError(ValidateWith("name", string.Concat(Enumerable.Repeat(FamilyEmoji, 21))), "name")); // 105
     }
 
     [Theory]

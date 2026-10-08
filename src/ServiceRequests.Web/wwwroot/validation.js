@@ -3,8 +3,9 @@
 //
 // - Trimming removes Unicode whitespace from both ends. \p{White_Space} is the
 //   same character set as .NET's string.Trim() and regex \s.
-// - Lengths count Unicode characters (code points), like the server and
-//   PostgreSQL's char_length().
+// - Lengths count Unicode code points, like the server and PostgreSQL's
+//   char_length(). "😀" is one code point; a combined emoji such as a family
+//   (people joined by zero-width joiners) is several.
 
 export const LIMITS = Object.freeze({
   nameMin: 2,

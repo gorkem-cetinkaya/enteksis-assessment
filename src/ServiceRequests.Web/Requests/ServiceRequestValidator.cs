@@ -14,8 +14,9 @@ public sealed record ServiceRequestValidationResult(ServiceRequestInput? Request
 /// rules in the browser, but this class always runs and is the authority.
 /// <list type="bullet">
 /// <item>Trimming removes Unicode whitespace from both ends (string.Trim).</item>
-/// <item>Lengths count Unicode characters (code points), like PostgreSQL's
-/// char_length() and [...text].length in JavaScript.</item>
+/// <item>Lengths count Unicode code points, like PostgreSQL's char_length()
+/// and [...text].length in JavaScript. "😀" is one code point; a combined
+/// emoji such as a family (people joined by zero-width joiners) is several.</item>
 /// <item>Missing, null or non-string fields are reported as field errors.</item>
 /// </list>
 /// </summary>

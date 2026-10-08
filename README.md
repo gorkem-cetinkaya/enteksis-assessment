@@ -133,7 +133,7 @@ tests/client/validation.test.mjs       tarayıcı kurallarının testleri
    - Gövde bir JSON nesnesi değilse `400` döner.
    - `ServiceRequestValidator` alanları denetler; geçersiz alan varsa `400` ve alan bazında hatalar döner.
 3. **Veritabanı:** `PostgresServiceRequestStore`, bir transaction içinde parametreli `INSERT … RETURNING id` çalıştırır. `COMMIT` başarılı olduktan sonra API `201 {"requestId": "<uuid>"}` döner. `id` ve `created_at` değerlerini veritabanı üretir.
-4. **Hata durumu:** Veritabanı hatası sunucu loguna yazılır. İstemciye yalnızca genel bir mesaj içeren `500` gönderilir; SQL, bağlantı dizesi ya da stack trace gönderilmez.
+4. **Hata durumu:** Veritabanı hatası sunucu loguna yazılır. İstemciye yalnızca genel bir mesaj içeren `500` gönderilir; SQL, bağlantı dizesi ya da stack trace gönderilmez. Mesaj, kaydın oluşmadığını iddia etmez; yalnızca kaydın doğrulanamadığını söyler. Bunun nedeni, bağlantının COMMIT'ten hemen sonra kopması durumunda kaydın yine de oluşmuş olabilmesidir. Bu senaryo denenmedi; ifade kod yolundaki olası sonuçlara dayanıyor.
 5. **Arayüz:**
    - Başarı mesajı yalnızca `201` ve geçerli bir UUID `requestId` geldiğinde gösterilir; ardından form temizlenir.
    - `400` yanıtındaki alan hataları ilgili alanlara yazılır.
@@ -159,7 +159,7 @@ tests/client/validation.test.mjs       tarayıcı kurallarının testleri
 | `400` | Doğrulama hatası: alan adlarıyla eşleşen `errors` içeren ProblemDetails |
 | `400` | Gövde geçerli bir JSON değil ya da JSON nesnesi değil |
 | `415` | İçerik türü JSON değil |
-| `500` | Kayıt yapılamadı; yalnızca genel mesaj döner |
+| `500` | Kayıt doğrulanamadı: "Talebinizin kaydedildiğini doğrulayamadık…"; yalnızca genel mesaj döner |
 
 Kayıtları listeleyen ya da tek tek okuyan bir uç nokta yoktur. `GET /api/requests` isteği `405` döner.
 
@@ -175,7 +175,7 @@ Kurallar istemcide (`wwwroot/validation.js`) ve sunucuda (`ServiceRequestValidat
 | `description` | Baştaki ve sondaki boşluklar kırpılır. 10–2000 karakter olmalıdır. Sekme ve satır sonu serbesttir, diğer kontrol karakterleri reddedilir. |
 | Tüm alanlar | Eksik ya da `null` alan için "zorunludur", metin dışı tip için "metin olmalıdır" hatası döner. `id` veya `created_at` gibi bilinmeyen alanlar yok sayılır. |
 
-- "Karakter", Unicode kod noktası anlamına gelir; örneğin bir emoji tek karakter sayılır. Bu sayım C#'ta `EnumerateRunes()`, JavaScript'te `[...metin].length`, PostgreSQL'de `char_length()` ile aynı sonucu verir.
+- "Karakter", Unicode kod noktası anlamına gelir. Örneğin 😀 tek bir kod noktasıdır. Ekranda tek simge gibi görünen birleşik emojiler ise birden fazla sayılır; örneğin 👨‍👩‍👧, sıfır genişlikli birleştiricilerle birlikte 5 kod noktasıdır. Bu sayım C#'ta `EnumerateRunes()`, JavaScript'te `[...metin].length`, PostgreSQL'de `char_length()` ile aynı sonucu verir.
 - Kırpma Unicode boşluk karakterlerine uygulanır.
 - Kontrol karakterleri reddedilir, çünkü örneğin PostgreSQL metin alanında NUL (U+0000) karakterini saklayamaz. Bu kural olmasaydı doğrulamadan geçen bir girdi kayıt sırasında `500` hatasına dönüşebilirdi.
 
@@ -201,7 +201,7 @@ Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama 
 - Gerçek PostgreSQL'e bağlanan otomatik entegrasyon testi yok; kalıcılık komut satırından kontrol edildi.
 - JavaScript kapalıyken form gönderilemez. Bu durumda `noscript` uyarısı gösterilir; `method="post"` sayesinde girilen bilgiler URL'ye yazılmaz.
 - Docker dışında `dotnet run` ile çalıştırma belgelenmedi ve denenmedi.
-- Konteynerde `dotnet` süreci PID 1 olarak çalışıyor. Başlangıçtaki hata artık düzgün bir çıkışla sonuçlanıyor. Ancak başlangıç dışında beklenmeyen bir çökme olursa süreç yine takılı kalabilir. İmaja `tini` gibi bir init süreci eklenmesi canlı yayın aşamasında değerlendirilecek.
+- Konteynerde `dotnet` süreci PID 1 olarak çalışıyor. Docker denemesinde, başlangıç hatası sırasında süreç kapanmadan %100'e yakın CPU kullanarak takılı kaldı; `docker run --init` ile ise normal şekilde çıktı. Bu durum çıkış kodu döndürülerek giderildi. Kök neden doğrulanmadı ve başlangıç dışındaki çökme durumları denenmedi. İmaja `tini` gibi bir init süreci eklenmesi yayın aşamasında değerlendirilecek.
 
 ## AI kullanımı
 
