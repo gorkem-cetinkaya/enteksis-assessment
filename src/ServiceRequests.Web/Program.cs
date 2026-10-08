@@ -25,6 +25,7 @@ builder.Services.AddSingleton(serviceProvider =>
 });
 builder.Services.AddSingleton<IServiceRequestStore, PostgresServiceRequestStore>();
 builder.Services.AddHostedService<DatabaseInitializer>();
+builder.Services.AddServiceRequestRateLimiting();
 
 var app = builder.Build();
 
@@ -37,6 +38,8 @@ app.UseStaticFiles(new StaticFileOptions
     // load; an unchanged file is answered with a cheap 304 via its ETag.
     OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache",
 });
+// Only endpoints that opt in (POST /api/requests) are rate-limited.
+app.UseRateLimiter();
 app.MapServiceRequestEndpoints();
 
 try

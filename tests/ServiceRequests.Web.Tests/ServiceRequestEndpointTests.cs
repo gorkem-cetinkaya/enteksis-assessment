@@ -3,14 +3,9 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Npgsql;
-using ServiceRequests.Web.Data;
 using ServiceRequests.Web.Requests;
+using static ServiceRequests.Web.Tests.TestRequests;
 
 namespace ServiceRequests.Web.Tests;
 
@@ -21,10 +16,6 @@ namespace ServiceRequests.Web.Tests;
 /// </summary>
 public class ServiceRequestEndpointTests
 {
-    private const string ValidJson = """
-        {"name":"  Deniz Örnek  ","email":"deniz.ornek@example.com","service":"ai-triage","description":"Gelen talepleri otomatik sınıflandırmak istiyoruz."}
-        """;
-
     [Fact]
     public async Task Valid_request_returns_201_with_the_id_returned_by_the_store()
     {
@@ -243,41 +234,5 @@ public class ServiceRequestEndpointTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.True(response.Headers.CacheControl?.NoCache, $"Expected Cache-Control: no-cache for {path}.");
-    }
-
-    private static Task<HttpResponseMessage> PostJsonAsync(HttpClient client, string json) =>
-        client.PostAsync("/api/requests", new StringContent(json, Encoding.UTF8, "application/json"));
-
-    /// <summary>The app with the given store and without the startup schema step.</summary>
-    private sealed class TestApp(IServiceRequestStore store) : WebApplicationFactory<Program>
-    {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) =>
-            builder.ConfigureTestServices(services =>
-            {
-                services.RemoveAll<IServiceRequestStore>();
-                services.AddSingleton(store);
-                services.Remove(services.Single(service => service.ImplementationType == typeof(DatabaseInitializer)));
-            });
-    }
-
-    private sealed class RecordingStore : IServiceRequestStore
-    {
-        public Guid ReturnedId { get; } = Guid.NewGuid();
-
-        public List<ServiceRequestInput> Saved { get; } = [];
-
-        public Task<Guid> InsertAsync(ServiceRequestInput request, CancellationToken cancellationToken)
-        {
-            Saved.Add(request);
-            return Task.FromResult(ReturnedId);
-        }
-    }
-
-    private sealed class FailingStore : IServiceRequestStore
-    {
-        public const string SecretDetail = "Password=super-secret";
-
-        public Task<Guid> InsertAsync(ServiceRequestInput request, CancellationToken cancellationToken) =>
-            throw new NpgsqlException($"INSERT INTO service_requests failed (Host=db;{SecretDetail})");
     }
 }
