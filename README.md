@@ -10,7 +10,7 @@ Enteksis uygulama çalışması. Uygulama, müşteri taleplerini e-posta ile Exc
 
 Hizmetler yalnızca tanıtılır. Uygulamada gerçek LLM çağrısı ya da otomasyon motoru yoktur.
 
-> **Durum: 2. aşama.** Tanıtım sayfası ve talep formu yerelde çalışıyor; geçerli talepler gerçek bir PostgreSQL veritabanına kalıcı olarak kaydediliyor. Güvenlik sağlamlaştırmaları ve canlı yayın sonraki aşamada yapılacak. Ayrıntılar için [bilinen eksikler](#bilinen-eksikler-ve-sonraki-aşamalar) bölümüne bakın.
+> **Durum: 3. aşama.** Tanıtım sayfası ve talep formu yerelde çalışıyor; geçerli talepler gerçek bir PostgreSQL veritabanına kalıcı olarak kaydediliyor. Bu aşamada şunlar eklendi: API sınırları, tarayıcı güvenlik başlıkları, gerçek PostgreSQL ile otomatik testler, `/health` uç noktası ve yayın hazırlığı. Canlı yayın (Render + Neon) henüz yapılmadı. Ayrıntılar için [bilinen eksikler](#bilinen-eksikler-ve-sonraki-aşamalar) bölümüne bakın.
 
 ## Sayfa
 
@@ -41,8 +41,8 @@ Harici font, script ya da görsel kullanılmaz.
 - .NET 10 ve ASP.NET Core Minimal API
 - HTML, CSS ve JavaScript; derleme adımı yoktur, dosyalar aynı uygulamanın `wwwroot` klasöründen sunulur
 - PostgreSQL 17 ve Npgsql 10; veri erişimi parametreli SQL ile yapılır
-- Yerelde Docker Compose
-- Testler için xUnit ve `node:test`
+- Yerelde Docker Compose; konteynerde PID 1 olarak `tini`
+- Testler için xUnit, `node:test` ve gerçek PostgreSQL testleri için Testcontainers
 
 ## Yerelde çalıştırma
 
@@ -76,22 +76,71 @@ Veriler `postgres-data` adlı named volume'de saklanır ve `docker compose down`
 - PostgreSQL portu bilgisayara açılmaz. Uygulamaya yalnızca `127.0.0.1:8080` üzerinden erişilebilir.
 - Statik dosyalar `Cache-Control: no-cache` başlığıyla sunulur. Tarayıcı her yüklemede dosyayı ETag ile yeniden doğrular; dosya değişmediyse `304` döner. Böylece yeni bir sürümden sonra önbellekteki eski `app.js` kullanılmaz. Bu başlık eklenmeden önce önbelleğe alınmış bir kopya varsa sayfayı bir kez zorla yenilemek (Cmd/Ctrl+Shift+R) gerekebilir.
 
+## Güvenlik ve sınırlar
+
+- **Hız sınırı (yalnızca `POST /api/requests`):** ASP.NET Core'un yerleşik hız sınırlayıcısı kullanılır. Sabit pencereyle 60 saniyede en fazla 20 istek kabul edilir, kuyruk yoktur. Sınır aşılınca `429`, Türkçe bir ProblemDetails ve `Retry-After` döner. Sayfa, statik dosyalar ve `/health` bu sınırdan etkilenmez.
+  - Sayaç bilinçli olarak uygulama örneği başına tek ve ortaktır: tüm ziyaretçiler aynı sınırı paylaşır, uygulama yeniden başlatılınca sayaç sıfırlanır, birden fazla örnek çalışırsa her birinin kendi sayacı olur.
+  - Bu, kapsamlı bir DDoS koruması değildir.
+  - İstemci IP'si kullanılmaz; bu yüzden sahte bir `X-Forwarded-For` başlığı sonucu değiştiremez.
+- **İstek gövdesi:** En fazla 32 KiB kabul edilir.
+  - `Content-Length` bu sınırdan büyükse istek okunmadan `413` döner.
+  - Uzunluğu önceden bildirilmeyen (chunked) gövdelerde, sınırı bir bayt aşan veri okunduğu anda `413` döner.
+  - Bu durum hiçbir zaman `500`'e dönüşmez.
+- **Tarayıcı güvenlik başlıkları (hata yanıtları dahil her yanıtta):**
+  - `Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: no-referrer`
+  - Sayfa satır içi script ya da stil kullanmadığı için `unsafe-inline` gerekmez.
+  - HTTPS yönlendirmesi ya da proxy güven ayarı eklenmedi; Render'daki HTTPS davranışı yayın aşamasında kontrol edilecek.
+- **Arayüz:**
+  - `429` ve `413` yanıtlarında talebin kaydedilmediği ve ne yapılması gerektiği anlatılır.
+  - Tarayıcı 30 saniye içinde yanıt alamazsa beklemeyi bırakır ve kaydın yapılıp yapılmadığının bilinmediğini söyler. Tarayıcının beklemeyi bırakması, sunucudaki işlemin iptal edildiği anlamına gelmez.
+  - Her durumda alanlar yeniden açılır ve girilen bilgiler formda kalır. İstek otomatik olarak yeniden gönderilmez.
+- **`GET /health`:** Yalnızca `{"status":"ok","commit":...}` döner.
+  - `commit` değeri Render'ın verdiği `RENDER_GIT_COMMIT` değişkeninden okunur; değişken yoksa (ör. yerelde) `null` olur.
+  - Bu uç nokta **veritabanını kontrol etmez**; yalnızca uygulamanın yanıt verdiğini ve hangi commit'in çalıştığını gösterir.
+- **Konteyner:** `tini` PID 1 olarak çalışır, `dotnet` süreci ise root olmayan `app` kullanıcısıyla (UID 1654) çalışır.
+
 ## Otomatik testler
 
 Testler için .NET 10 SDK gerekir (denenen sürüm: 10.0.400). Tarayıcı kurallarının testleri için ayrıca Node.js 20.19 veya üstü gerekir (denenen sürüm: v20.20.0).
 
+Birim ve API testleri (Docker gerekmez):
+
+```bash
+dotnet test tests/ServiceRequests.Web.Tests
+```
+
+Gerçek PostgreSQL testleri (**Docker çalışıyor olmalı**):
+
+```bash
+dotnet test tests/ServiceRequests.Web.IntegrationTests
+```
+
+Hepsi birlikte (Docker gerekir):
+
 ```bash
 dotnet test ServiceRequests.slnx
+```
+
+Tarayıcı kuralları:
+
+```bash
 node --test tests/client/validation.test.mjs
 ```
 
 | Test | Sayı | Kapsam |
 | --- | --- | --- |
-| `ServiceRequestValidatorTests` | 69 | Sunucu tarafı doğrulama kuralları |
-| `ServiceRequestEndpointTests` | 20 | Gerçek HTTP hattı, PostgreSQL yerine bellek içi sahte depo ile: 201, 400 (e-posta alan adı dahil), 415, kontrollü 500, listeleme uç noktasının olmaması, sayfa bölümleri, kartlarla form seçeneklerinin ve sunucu hizmet kodlarının eşleşmesi, statik dosyalarda `Cache-Control: no-cache` |
-| `tests/client/validation.test.mjs` | 58 | Tarayıcı tarafı kurallar; .NET testleriyle aynı durumlar ve aynı mesajlar |
+| `ServiceRequestValidatorTests` | 85 | Sunucu tarafı doğrulama kuralları |
+| `ServiceRequestEndpointTests` | 22 | PostgreSQL yerine bellek içi sahte depo ile HTTP hattı: 201, 400 (e-posta kuralları dahil), 415, kontrollü 500, listeleme uç noktasının olmaması, sayfa bölümleri, kartlarla form seçeneklerinin ve hizmet kodlarının eşleşmesi, statik dosyalarda `no-cache` |
+| `RequestLimitTests` | 5 | 21. istekte `429` ve `Retry-After`; statik dosyaların sınırlanmaması; tam 32 KiB'ın kabul edilmesi; `Content-Length` ile ve olmadan `413` |
+| `SecurityHeaderTests` | 7 | Güvenlik başlıklarının 200, 201, 400, 404, 413, 429 ve 500 yanıtlarında bulunması |
+| `HealthEndpointTests` | 3 | `/health` içeriği, `RENDER_GIT_COMMIT` değeri, hız sınırından etkilenmemesi |
+| `PostgresPersistenceTests` | 3 | Gerçek PostgreSQL 17 (Testcontainers): `201` ve kaydın başka bir bağlantıdan kırpılmış olarak okunması; geçersiz istekte kayıt oluşmaması; yeni bir uygulama host'unda önceki kaydın korunması |
+| `DatabaseOutageTests` | 1 | Çalışan uygulamanın veritabanı durdurulunca `requestId` ve ayrıntı içermeyen genel bir `500` dönmesi |
+| `tests/client/validation.test.mjs` | 75 | Tarayıcı tarafı kurallar; .NET testleriyle aynı durumlar ve aynı mesajlar |
 
-Bu testler veritabanına bağlanmaz. Gerçek PostgreSQL ile yapılan kontroller aşağıdadır.
+Gerçek PostgreSQL testleri her çalıştırmada kendi geçici `postgres:17-alpine` konteynerini başlatır ve iş bitince kaldırır. Compose veritabanına, onun volume'üne ya da Neon'a dokunmaz. Docker yoksa bu testler atlanmaz, **başarısız olur**: Docker soketi olmayan bir konteynerde 4 testin 4'ü de başarısız oldu ve `dotnet test` 1 koduyla çıktı.
 
 ## Gerçek PostgreSQL ile komut satırı kontrolleri
 
@@ -137,23 +186,29 @@ ServiceRequests.slnx
 compose.yaml, Dockerfile, .env.example
 src/ServiceRequests.Web/
   Program.cs                           servisler ve istek hattı
+  SecurityHeaders.cs                   CSP, nosniff, Referrer-Policy
+  HealthEndpoint.cs                    GET /health
   Requests/ServiceRequestValidator.cs  sunucu doğrulama kuralları (son karar burada)
   Requests/ServiceRequestEndpoints.cs  POST /api/requests
+  Requests/RequestLimits.cs            hız sınırı ve 32 KiB gövde sınırı
   Data/schema.sql                      tekrar çalıştırılabilir tablo kurulumu
   Data/DatabaseInitializer.cs          schema.sql dosyasını açılışta uygular
   Data/PostgresServiceRequestStore.cs  parametreli INSERT ve COMMIT
   wwwroot/index.html, styles.css       tanıtım sayfası ve form
   wwwroot/validation.js                tarayıcı tarafı kurallar
   wwwroot/app.js                       gönderim ve durum mesajları
-tests/ServiceRequests.Web.Tests/       xUnit testleri
-tests/client/validation.test.mjs       tarayıcı kurallarının testleri
+tests/ServiceRequests.Web.Tests/              birim ve API testleri (sahte depo)
+tests/ServiceRequests.Web.IntegrationTests/   gerçek PostgreSQL testleri (Testcontainers)
+tests/client/validation.test.mjs              tarayıcı kurallarının testleri
 ```
 
 ## İstekten veritabanına akış
 
 1. **Tarayıcı:** `validation.js`, alanları sunucuyla aynı kurallarla denetler. Hata varsa istek gönderilmez, hatalar alanların altında gösterilir ve odak ilk hatalı alana taşınır. Hata yoksa dört alan ve buton devre dışı kalır, "Gönderiliyor…" yazısı görünür ve `fetch` tek bir JSON POST isteği gönderir. Böylece beklerken yazılan ve isteğe girmeyecek değişiklikler oluşmaz. Sonuç ne olursa olsun alanlar yeniden açılır. İstek otomatik olarak tekrarlanmaz.
 2. **API (`POST /api/requests`):** Sırasıyla şunlar denetlenir:
+   - Hız sınırı aşıldıysa `429` döner.
    - İçerik türü JSON değilse `415` döner.
+   - Gövde 32 KiB'tan büyükse `413` döner.
    - Gövde ayrıştırılamıyorsa `400` döner.
    - Gövde bir JSON nesnesi değilse `400` döner.
    - `ServiceRequestValidator` alanları denetler; geçersiz alan varsa `400` ve alan bazında hatalar döner.
@@ -162,7 +217,8 @@ tests/client/validation.test.mjs       tarayıcı kurallarının testleri
 5. **Arayüz:**
    - Başarı mesajı yalnızca `201` ve geçerli bir UUID `requestId` geldiğinde gösterilir; ardından form temizlenir.
    - `400` yanıtındaki alan hataları ilgili alanlara yazılır.
-   - Ağ hatasında kaydın oluşup oluşmadığının doğrulanamadığı söylenir.
+   - Ağ hatasında ve 30 saniyelik zaman aşımında kaydın oluşup oluşmadığının bilinmediği söylenir.
+   - `429` ve `413` yanıtlarında talebin kaydedilmediği ve ne yapılması gerektiği anlatılır.
    - Başarı dışındaki tüm durumlarda girilen bilgiler formda kalır.
 
 ## API
@@ -183,8 +239,12 @@ tests/client/validation.test.mjs       tarayıcı kurallarının testleri
 | `201` | `{"requestId": "<uuid>"}`; kayıt commit edildikten sonra döner |
 | `400` | Doğrulama hatası: alan adlarıyla eşleşen `errors` içeren ProblemDetails |
 | `400` | Gövde geçerli bir JSON değil ya da JSON nesnesi değil |
+| `413` | Gövde 32 KiB'tan büyük |
 | `415` | İçerik türü JSON değil |
+| `429` | Hız sınırı aşıldı; `Retry-After` başlığıyla birlikte döner |
 | `500` | Kayıt doğrulanamadı: "Talebinizin kaydedildiğini doğrulayamadık…"; yalnızca genel mesaj döner |
+
+`GET /health` isteği `{"status":"ok","commit":"<RENDER_GIT_COMMIT ya da null>"}` döner ve veritabanını kontrol etmez.
 
 Kayıtları listeleyen ya da tek tek okuyan bir uç nokta yoktur. `GET /api/requests` isteği `405` döner.
 
@@ -235,17 +295,45 @@ Adres `yerel-kısım@alan.adı` biçiminde olmalı ve tam olarak bir `@` içerme
 
 Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama her açılışta bu betiği çalıştırır. Veritabanına ulaşılamazsa uygulama başlamaz ve çıkış kodu 1 ile kapanır. `compose.yaml` içindeki `restart: on-failure` ayarı, veritabanı yeniden erişilebilir olana kadar uygulamayı tekrar başlatır.
 
+## Yayın hazırlığı: Render + Neon (Frankfurt)
+
+Bu adımlar henüz uygulanmadı; yayın aşamasında izlenecek. Gerçek bağlantı bilgileri yalnızca Render'ın ortam değişkenlerine girilir; repoya ya da sohbete yazılmaz.
+
+1. **Neon:**
+   - AWS Europe Central 1 (Frankfurt) bölgesinde bir proje oluşturulur.
+   - Konsolun .NET bağlantı penceresinden Npgsql biçimindeki bağlantı bilgisi alınır. Biçim (yer tutucularla):
+
+     ```text
+     Host=<neon-host>;Port=5432;Database=<veritabanı>;Username=<kullanıcı>;Password=<parola>;SSL Mode=VerifyFull;Channel Binding=Require
+     ```
+
+   - `SSL Mode=VerifyFull` ile Npgsql sunucu sertifikasını makinenin CA deposuyla doğrular ve bağlanılan sunucunun belirtilen sunucu olduğunu denetler. Npgsql'in varsayılanı `Prefer`'dır; `Prefer` ve `Require` ortadaki adam saldırısına karşı koruma sağlamaz. Bu bilgiler Npgsql güvenlik belgesine dayanıyor; Neon'un .NET rehberi de `SSL Mode=VerifyFull; Channel Binding=Require` öneriyor. Çalışma imajında CA sertifikaları (`/etc/ssl/certs/ca-certificates.crt`) bulunuyor.
+   - Tablo, uygulama ilk açıldığında `schema.sql` ile oluşturulur; elle kurulum gerekmez.
+2. **Render:** New → Web Service ile depo seçilir. Ayarlar:
+   - Runtime: Docker (repodaki `Dockerfile`, build context depo kökü)
+   - Region: Frankfurt
+   - Health Check Path: `/health`
+   - `ConnectionStrings__Postgres`: Neon bağlantı dizesi, gizli ortam değişkeni olarak
+   - `PORT`: `8080`
+3. **Port uyumu:** Render belgelerine göre web servisi `0.0.0.0` adresine bağlanmalı ve `PORT` değişkeninin varsayılanı `10000`'dir. Uygulama `ASPNETCORE_HTTP_PORTS=8080` ile tüm adreslerde 8080 portunu dinlediği için Render'da `PORT=8080` verilmelidir; iki değer aynı olmalı.
+4. **Commit bilgisi:** `RENDER_GIT_COMMIT` değişkenini Render ayarlar ("the commit SHA for a service or deploy"). `/health` yanıtındaki `commit` bu değeri gösterir.
+5. **Yayından sonra:**
+   - `https://<servis>.onrender.com/health` adresindeki `commit` değeri teslim commit'iyle aynı olmalı.
+   - Formdan kurgusal bir talep gönderilmeli; yeniden deploy'dan sonra kaydın Neon'da durduğu doğrulanmalı.
+   - HTTPS davranışı kontrol edilmeli.
+6. **Render Free:** Render belgelerine göre ücretsiz servis 15 dakika trafik almazsa uyur ve uyanması yaklaşık 1 dakika sürer. Dosya sistemi geçicidir; veriler Neon'da tutulduğu için bu bir sorun değildir.
+
 ## Bilinen eksikler ve sonraki aşamalar
 
-- Canlı yayın yapılmadı. Render ve Neon'a bağlanılmadı. Canlı ortamda Neon bağlantı dizesi Npgsql biçimine çevrilip `ConnectionStrings__Postgres` olarak verilecek; Render tarafındaki port ayarı da o aşamada kontrol edilecek. Konteyner 8080 portunu dinliyor.
-- Hız sınırı, uygulamaya özel istek gövdesi boyut sınırı ve güvenlik başlıkları (CSP vb.) henüz yok. Şu an Kestrel'in varsayılan gövde sınırı (yaklaşık 30 MB) geçerli.
+- Canlı yayın yapılmadı; Render'a ve Neon'a bağlanılmadı. Yukarıdaki adımlar ve Render'daki HTTPS kontrolü yayın aşamasında yapılacak.
+- Hız sınırı sayacı bilinçli olarak tek ve ortaktır: yeniden başlatmada sıfırlanır, birden fazla örnek arasında paylaşılmaz ve DDoS koruması değildir.
+- `/health` veritabanını kontrol etmiyor.
 - E-postada tırnaklı ve ASCII dışı yerel kısımlar kabul edilmiyor. Biçim kontrolü adresin var olduğunu kanıtlamıyor.
 - İdempotency anahtarı yok. Yanıtı kaybolan bir isteği kullanıcı elle yeniden gönderirse aynı talep iki kez kaydedilebilir. Arayüz bu durumu ağ hatası mesajında belirtiyor.
-- Gerçek PostgreSQL'e bağlanan otomatik entegrasyon testi yok; kalıcılık komut satırından kontrol edildi.
 - JavaScript kapalıyken form gönderilemez. Bu durumda `noscript` uyarısı gösterilir; `method="post"` sayesinde girilen bilgiler URL'ye yazılmaz.
 - Docker dışında `dotnet run` ile çalıştırma belgelenmedi ve denenmedi.
 - Sayfa gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta denenmedi. Hizmet seçim kutusu tarayıcının yerel öğesidir ve otomasyon aracıyla klavyeden sürülemedi; yalnızca seçilmiş değerle klavye akışı denendi.
-- Konteynerde `dotnet` süreci PID 1 olarak çalışıyor. Docker denemesinde, başlangıç hatası sırasında süreç kapanmadan %100'e yakın CPU kullanarak takılı kaldı; `docker run --init` ile ise normal şekilde çıktı. Bu durum çıkış kodu döndürülerek giderildi. Kök neden doğrulanmadı ve başlangıç dışındaki çökme durumları denenmedi. İmaja `tini` gibi bir init süreci eklenmesi yayın aşamasında değerlendirilecek.
+- 1. aşamada, `dotnet` PID 1 iken başlangıç hatasında süreç kapanmadan %100'e yakın CPU kullanarak takılı kalmıştı; `docker run --init` ile çalıştırıldığında ise normal şekilde çıkmıştı. Bu durum önce çıkış kodu döndürülerek giderildi, 3. aşamada imaja `tini` eklendi. Eski takılmanın kök nedeni doğrulanmadı.
 
 ## AI kullanımı
 

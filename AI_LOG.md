@@ -342,13 +342,144 @@ Aşağıdakiler test aracının sınırlarıdır, sayfa sorunu değildir:
 | `6ea019f` | 14:37 | E-posta alan adı kuralı, .NET/Node/API testleri, README |
 | `4b472fe` | 14:38 | 500 mesajı, PID 1 yorumu, Unicode ifadeleri ve birleşik emoji testleri |
 | `2583168` | 14:46 | Tanıtım sayfası, stiller ve sayfa testleri |
+| `4abd361` | 14:50 | README ve AI_LOG |
+
+## Aşama 2 Codex incelemesi
+
+Bu bölüm, Codex'in 2. aşama inceleme notunun (`/private/tmp/enteksis-phase2-review.md`) özetidir. Buradaki kontrolleri Codex yaptı; bunlar adayın kişisel manuel testi değildir.
+
+- **Kapsam:** İnceleme 8 Ekim 2026'da `4abd361` commit'i üzerinde yapıldı. Codex kodu değiştirmedi, commit ya da push yapmadı ve Render ile Neon'a erişmedi.
+- **Son teslim:** Notta adayın bildirdiği kesin son teslim zamanı 9 Ekim 2026, 12:49:46 (İstanbul) olarak yazıyor.
+- **Codex'in doğruladıkları (nota göre):**
+  - Derlemede 0 uyarı vardı; .NET testleri 89/89 ve JavaScript testleri 58/58 geçti.
+  - INSERT 15 saniye geciktirildiğinde, gönderim sırasında dört alan ve düğme kilitli kaldı. Başarıdan sonra kontroller yeniden açıldı, form sıfırlandı ve odak başarı mesajına geçti.
+  - Başarı mesajındaki kimlik gerçek veritabanında bulundu.
+  - `codex-phase2@exa/mple.com` adresi 400 aldı.
+  - `/app.js` yanıtında `no-cache` ve ETag vardı; ETag ile yapılan istek 304 döndü.
+  - 1280 px ve 320 px genişlikte yatay taşma yoktu.
+  - Tab ile alanlar arasında gezilebildi. Otomasyon aracında ArrowDown tuşu hizmet seçimini değiştirmedi; yerel seçim kutusunun tamamen klavyeyle kullanılabildiği doğrulanmış sayılmamalı.
+- **Bulgular (3. aşamada tamamlanacak):**
+  - `codex<phase2>@example.com` istemcide kabul edildi ve sunucuda 201 ile kaydedildi. Kanıt kaydı: `0006d8e9-bda4-4860-b084-3a9b1cc2aa5d`. Notta ayrıca bu örnekten bir XSS açığı olduğu sonucunun çıkarılmaması gerektiği yazıyor, çünkü veri `textContent` ile gösteriliyor ve listelenmiyor.
+  - `codex@𐐀.example` adresini JavaScript kabul etti, C# API ise 400 döndü; iki taraf tutarsızdı.
+  - İçerik notu: "Hizmetler" bölümünün giriş cümlesi ürünün faydası yerine formun yapısını anlatıyordu.
+- **Veri:** Codex incelemede iki kurgusal kayıt ekledi ve toplam 16 oldu; önceki kayıtlar silinmedi.
+
+## Aşama 3: Doğrulama, sınırlar, güvenlik başlıkları, gerçek veritabanı testleri ve yayın hazırlığı
+
+Aday, `/private/tmp/enteksis-phase3-task.md` dosyasındaki görevin uygulanmasını istedi. Claude bu aşamanın ilk komutunu 2026-10-08 20:10:29 (+03) saatinde çalıştırdı. Yayın yapılmadı, Render ve Neon'a bağlanılmadı; remote oluşturulmadı ve push yapılmadı.
+
+### Görev özeti
+
+Görev dosyasının özeti:
+
+- **E-posta:**
+  - `@` öncesi için basit bir ASCII dot-atom kuralı: en fazla 64 karakter; nokta konumları, boşluk, kontrol karakteri, `<` ve `>` denetlenecek.
+  - Unicode alan adı desteği korunacak; C# ve JavaScript aynı kod noktası mantığını kullanacak ve `codex@𐐀.example` iki tarafta aynı sonucu verecek.
+  - Biçim kontrolünün adresin varlığını kanıtlamadığı belirtilecek.
+  - "Hizmetler" metni düzeltilecek.
+- **API sınırları:**
+  - Yalnızca `POST /api/requests` için ortak bir sayaçla 60 saniyede 20 istek, kuyruk 0. Aşılırsa 429, Türkçe ProblemDetails ve `Retry-After`.
+  - 32 KiB gövde sınırı: `Content-Length` ile ve chunked gövdelerde 413; doğrulama gerçek Kestrel'de de yapılacak.
+  - Arayüz 429 ve 413'ü anlatacak; 30 saniyelik istemci zaman aşımı eklenecek; otomatik yeniden gönderim olmayacak.
+- **Güvenlik başlıkları:** CSP (`self` ve `none` yönergeleri), `nosniff` ve `no-referrer`; hata yanıtlarında da bulunacak. HTTPS yönlendirmesi ya da proxy güven ayarı eklenmeyecek.
+- **Gerçek PostgreSQL testleri:**
+  - Ayrı bir projede Testcontainers ile PostgreSQL 17.
+  - Senaryolar: geçerli istekte 201 ve başka bağlantıdan okunabilen kırpılmış kayıt; geçersiz istekte kayıt olmaması; veritabanı kesilince ayrıntı sızdırmayan genel 500; yeni host'ta önceki kaydın korunması.
+  - Ayrıca 429, 413 ve başlık testleri.
+  - Docker yokken testler sessizce geçmeyecek.
+- **Konteyner:**
+  - Resmî paket deposundan tini eklenecek; uygulama yine root olmayan kullanıcıyla çalışacak.
+  - `GET /health`: yalnızca uygulamanın yanıt verdiğini ve `RENDER_GIT_COMMIT` değerini gösterecek, sahte SHA üretilmeyecek.
+- **Yayın hazırlığı:**
+  - Render ve Neon (Frankfurt) için README adımları yazılacak; yer tutucular kullanılacak ve gerçek parola istenmeyecek.
+  - Gizli bilgi taraması yapılacak.
+  - Teslim ekranının beş alanı için bir taslak hazırlanacak; olmayan URL ya da SHA uydurulmayacak.
+
+### Claude'un kararları ve bulguları
+
+- **E-posta:**
+  - Yerel kısım için C#'ta `\z` ile biten bir desen kullanıldı. .NET'te `$` sondaki bir `\n`'den önce de eşleştiği için `$` kullanılsaydı `deniz\n@example.com` kabul edilebilirdi; bu durum için test eklendi.
+  - Alan adı iki tarafta da kod noktası düzeyinde denetleniyor: C#'ta `Rune.IsLetter`/`Rune.IsDigit`, JavaScript'te `u` bayraklı `\p{L}`/`\p{Nd}`.
+  - `@` öncesindeki 64 karakter sınırı için ayrı bir hata mesajı eklendi.
+- **Gövde sınırı:**
+  - Gövde, sunucudan bağımsız olarak en fazla 32 KiB + 1 bayt okunuyor; bu yöntem chunked gövdelerde de çalışıyor.
+  - `Content-Length` 32 KiB'tan büyükse gövde hiç okunmadan 413 dönüyor.
+  - Sunucunun bozuk gövde için verdiği hata kendi durum koduyla dönüyor, 500'e çevrilmiyor.
+- **Hız sınırı:** `AddFixedWindowLimiter` tek bir bölmeyle kullanıldı, yani sayaç ortak. `Retry-After` değeri sınırlayıcının bilgisinden alınıyor; bilgi yoksa pencere süresi (60 sn) kullanılıyor.
+- **Güvenlik başlıkları:** Başlıklar ilk ara katmanda `Response.OnStarting` içinde ekleniyor. Böylece exception handler'ın başlıkları temizlediği yanıtlarda da bulunuyorlar.
+- **Testler:** Ortak test yardımcıları `TestSupport.cs` dosyasına taşındı. Uzunluğu önceden bilinmeyen gövdeler için `UnknownLengthContent` sınıfı eklendi.
+
+### Claude'un yaptığı kontroller
+
+Bu kontroller insan testi değildir.
+
+#### Önce yeniden üretme ve testlerin başarısız olduğunu görme
+
+- Mevcut kodda `codex<phase2>@example.com` hem istemcide hem API'de kabul edildi (201; kurgusal kayıt `2c2f5122-0a2c-4726-a342-ca5228dcb545`).
+- Mevcut kodda `codex@𐐀.example` adresini istemci kabul etti, API 400 döndü.
+- Yeni testler mevcut kodda başarısız oldu: .NET'te 12, Node'da 9 test.
+
+#### Otomatik testler (aşama sonu)
+
+| Komut | Sonuç |
+| --- | --- |
+| `dotnet build ServiceRequests.slnx` | 0 uyarı, 0 hata |
+| `dotnet test tests/ServiceRequests.Web.Tests` | 122/122 başarılı: doğrulayıcı 85, API 22, sınırlar 5, güvenlik başlıkları 7, health 3 |
+| `dotnet test tests/ServiceRequests.Web.IntegrationTests` | 4/4 başarılı: gerçek PostgreSQL 17 (Testcontainers), yaklaşık 7 sn |
+| `dotnet test ServiceRequests.slnx` | 122/122 + 4/4 başarılı |
+| `node --test tests/client/validation.test.mjs` | 75/75 başarılı |
+| Docker soketi olmayan bir SDK konteynerinde entegrasyon testleri | 4/4 başarısız (`DockerUnavailableException`), çıkış kodu 1. Testler Docker yokken geçmiş sayılmıyor. |
+
+Not: Ana makinede `DOCKER_HOST` var olmayan bir sokete yönlendirildiğinde testler yine geçti, çünkü Testcontainers sıradaki uç noktaya (Docker Desktop) geçti. Bu yüzden "Docker yok" durumu bu yöntemle değil, Docker soketi olmayan bir SDK konteyneriyle denendi.
+
+#### Komut satırıyla yapılan entegrasyon kontrolleri (curl, psql, Docker)
+
+| Kontrol | Sonuç |
+| --- | --- |
+| E-posta eşlik denetimi: 600 rastgele adres hem tarayıcı modülüne hem çalışan API'ye verildi (adı geçersiz bırakıldı, kayıt oluşmadı) | 0 uyumsuzluk; ikinci 300'lük çalıştırmada 244 adres iki tarafta da geçerli sayıldı. Kayıt sayısı değişmedi. |
+| 21 ardışık POST (geçersiz gövdeyle, gerçek Kestrel) | İlk 20 istek 400, 21. istek 429 aldı; `Retry-After: 60` ve Türkçe başlık vardı. Sayfa ve statik dosyalar 200 döndü. Kayıt sayısı değişmedi. |
+| Gövde sınırı (gerçek Kestrel) | Tam 32 KiB gövde okunup doğrulandı (400). 32 KiB + 1 bayt hem `Content-Length` ile hem chunked gönderimde 413 aldı. 5 MiB chunked gövde de 413 aldı ve uygulama çalışmaya devam etti. |
+| Güvenlik başlıkları (curl) | `/`, `/app.js`, 404 ve 400 yanıtlarında CSP, `nosniff` ve `no-referrer` vardı. |
+| tini | PID 1 `/usr/bin/tini -- dotnet ServiceRequests.Web.dll`, kullanıcı UID 1654 (`app`). `docker compose stop` 1 saniyeden kısa sürede tamamlandı ve çıkış kodu 0 oldu. Veritabanı kapalıyken uygulama 1 koduyla çıktı ve yeniden başlatıldı (CPU %0, `Unhandled exception` yok); veritabanı açılınca kalktı. |
+| `/health` | `{"status":"ok","commit":null}` döndü (yerelde `RENDER_GIT_COMMIT` yok). |
+| Gizli bilgi taraması (`git grep`, değerler yazdırılmadan) | Gerçek sır bulunmadı. Eşleşmeler yalnızca Compose ve `.env.example` içindeki yerel geliştirme örnek parolası, README'deki yer tutucu ve testteki sahte bir değerdi. Neon adresi, `postgres://` URI'si, özel anahtar ya da API anahtarı yok. Geçmişe hiç `.env` eklenmemiş. `.gitignore` ve `.dockerignore` `.env` dosyalarını dışarıda bırakıyor. |
+
+#### Tarayıcıda yapılan arayüz kontrolleri
+
+| Kontrol | Sonuç |
+| --- | --- |
+| Gerçek 429 (pencere önce curl ile dolduruldu) | "…talebiniz kaydedilmedi. Lütfen yaklaşık 60 saniye sonra tekrar deneyin…" mesajı göründü; alanlar açıldı, değerler korundu, odak uyarıya geçti. |
+| Gerçek zaman aşımı (psql 45 sn tablo kilidi) | Beklerken alanlar kilitliydi. 30. saniyede "…kaydedilip kaydedilmediğini bilmiyoruz…" mesajı göründü; alanlar açıldı ve değerler korundu. Bu denemede bekleyen INSERT iptal edildi ve kayıt oluşmadı; bunun her durumda böyle olacağı garanti değildir. |
+| Simüle edilmiş 413 | Boyut mesajı göründü, değerler korundu. |
+| CSP etkinken sayfa | Sayfa, `styles.css`, `app.js` ve `validation.js` 200 ile yüklendi. Stil uygulandı (düğme rengi), script çalıştı (boş gönderimde 4 hata) ve gerçek bir POST başarılı oldu (`e6bab0b2-bff4-40c7-8871-265cf893e4ad`, psql ile bulundu). Konsolda CSP ihlali yoktu. |
+
+#### Yapılamayan veya doğrulanamayan kontroller
+
+- Render ve Neon üzerinde çalıştırma, HTTPS davranışı ve gerçek Neon TLS bağlantısı (`VerifyFull`) denenmedi; bunlar yayın aşamasında yapılacak.
+- Codex'in 3. aşama incelemesi henüz yapılmadı.
+- Gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta test yapılmadı.
+- Tini'nin başlangıç dışındaki çökme durumlarındaki davranışı denenmedi. Eski CPU takılmasının kök nedeni araştırılmadı.
+
+### Commit'ler (saat +03)
+
+| Commit | Saat | İçerik |
+| --- | --- | --- |
+| `c6a54ca` | 20:13 | E-posta: yerel kısım için dot-atom kuralı, alan adında kod noktası denetimi, testler |
+| `d695bfe` | 20:14 | "Hizmetler" giriş metni |
+| `bad713a` | 20:19 | Hız sınırı (20/60 sn) ve 32 KiB gövde sınırı, testler |
+| `a3ad04c` | 20:21 | Arayüzde 429/413 mesajları ve 30 saniyelik zaman aşımı |
+| `f3152e3` | 20:22 | CSP, `nosniff`, `Referrer-Policy` ve testleri |
+| `025c73f` | 20:23 | `GET /health` ve testleri |
+| `ab2ed98` | 20:24 | Konteynerde tini |
+| `f4e0437` | 20:27 | Testcontainers ile gerçek PostgreSQL testleri |
 | Bu bölümün eklendiği commit | — | README ve AI_LOG |
 
 ## Adayın kişisel manuel testi
 
+Bu bölümde yalnızca adayın kendisinin bildirdiği kontroller yer alır.
+
 | Aşama | Durum |
 | --- | --- |
-| 1. aşama | Aday kişisel manuel test yaptığını henüz bildirmedi; tamamlanmış sayılmıyor. |
-| 2. aşama | Aday kişisel manuel test yaptığını henüz bildirmedi; tamamlanmış sayılmıyor. |
-
-Aday bildirdiğinde, yaptığı kontroller ve sonuçları bu bölüme eklenecek.
+| 1. aşama | Aday ayrı bir kişisel manuel test bildirmedi; tamamlanmış sayılmıyor. |
+| 2. aşama (`4abd361` sürümü) | Aday uygulamayı kullandı, başarılı bir gönderim gördü ve "Bi sorun göremedim" diyerek sorun bildirmedi. Arayüzde gördüğü talep numarası `590370d6-0e9b-4b2f-98e3-ede44a8721a6` idi. Bu kaydı yerel PostgreSQL'de aday değil Codex sorguladı: hizmet `api-integration`, kayıt zamanı 8 Ekim 2026 20:02:14.993336 (İstanbul). Kullanılan tarayıcı ve diğer manuel test adımları tek tek bildirilmedi; bunlar yapılmış sayılmıyor. |
+| 3. aşama | Aday kişisel manuel test bildirmedi; tamamlanmış sayılmıyor. |
