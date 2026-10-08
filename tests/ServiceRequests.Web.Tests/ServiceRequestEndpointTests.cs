@@ -139,6 +139,22 @@ public class ServiceRequestEndpointTests
         Assert.Contains("Demo uygulamadır. Yalnızca kurgusal bilgiler kullanın.", html);
     }
 
+    [Theory]
+    [InlineData("/")]
+    [InlineData("/app.js")]
+    [InlineData("/validation.js")]
+    [InlineData("/styles.css")]
+    public async Task Static_files_must_be_revalidated_by_the_browser(string path)
+    {
+        await using var app = new TestApp(new RecordingStore());
+        using var client = app.CreateClient();
+
+        var response = await client.GetAsync(path);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(response.Headers.CacheControl?.NoCache, $"Expected Cache-Control: no-cache for {path}.");
+    }
+
     private static Task<HttpResponseMessage> PostJsonAsync(HttpClient client, string json) =>
         client.PostAsync("/api/requests", new StringContent(json, Encoding.UTF8, "application/json"));
 

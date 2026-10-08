@@ -30,7 +30,13 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // Without a Cache-Control header browsers may reuse a cached app.js after
+    // a new version is deployed. "no-cache" makes them revalidate on every
+    // load; an unchanged file is answered with a cheap 304 via its ETag.
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache",
+});
 app.MapServiceRequestEndpoints();
 
 try
