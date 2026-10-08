@@ -195,10 +195,29 @@ Kurallar istemcide (`wwwroot/validation.js`) ve sunucuda (`ServiceRequestValidat
 | Alan | Kural |
 | --- | --- |
 | `name` | Baştaki ve sondaki boşluklar kırpılır. 2–100 karakter olmalı ve kontrol karakteri içermemelidir. |
-| `email` | Boşluklar kırpılır. Zorunludur ve en fazla 254 karakter olabilir. `yerel@alan.adı` biçiminde olmalıdır. Yerel kısım boşluk, kontrol karakteri ya da ikinci bir `@` içeremez. Alan adı noktayla ayrılmış en az iki etiketten oluşur. Her etiket harf ya da rakamla başlar ve biter; arada yalnızca harf, rakam ve tire bulunabilir. Bu nedenle `/`, `<`, `>`, `_` gibi karakterler ve boş etiketler (`a..b`, `.a`, `a.`) reddedilir. Alt alan adları (`mail.example.com.tr`), `+` içeren adresler ve Unicode harfli alan adları (`örnek.com.tr`) kabul edilir. Bu kural RFC'nin tamamını denetlemez. |
+| `email` | Boşluklar kırpılır. Zorunludur ve toplamda en fazla 254 karakter olabilir. Ayrıntılar aşağıdaki "E-posta kuralı" bölümünde. |
 | `service` | Yalnızca yukarıdaki üç koddan biri kabul edilir. Kırpma yapılmaz, büyük/küçük harf duyarlıdır. |
 | `description` | Baştaki ve sondaki boşluklar kırpılır. 10–2000 karakter olmalıdır. Sekme ve satır sonu serbesttir, diğer kontrol karakterleri reddedilir. |
 | Tüm alanlar | Eksik ya da `null` alan için "zorunludur", metin dışı tip için "metin olmalıdır" hatası döner. `id` veya `created_at` gibi bilinmeyen alanlar yok sayılır. |
+
+### E-posta kuralı
+
+Adres `yerel-kısım@alan.adı` biçiminde olmalı ve tam olarak bir `@` içermelidir.
+
+- **`@` öncesi (yerel kısım):**
+  - En fazla 64 karakter olabilir.
+  - ASCII "dot-atom" kuralı uygulanır: noktayla ayrılmış, boş olmayan parçalar. Parçalarda harf, rakam ve ``! # $ % & ' * + - / = ? ^ _ ` { | } ~`` işaretleri kullanılabilir.
+  - Başta, sonda ya da art arda gelen nokta, boşluk, kontrol karakteri, `<` ve `>` reddedilir.
+  - Tırnaklı (`"ad soyad"@…`) ve ASCII dışı karakter içeren yerel kısımlar bu demonun kapsamı dışındadır, bu yüzden reddedilir.
+- **`@` sonrası (alan adı):**
+  - Noktayla ayrılmış en az iki etiketten oluşur.
+  - Her etiket herhangi bir alfabeden bir harf ya da ondalık rakamla başlar ve biter; arada tire bulunabilir. Bu nedenle `/`, `<`, `>`, `_` ve boş etiketler (`a..b`, `.a`, `a.`) reddedilir.
+  - Alt alan adları (`mail.example.com.tr`), Unicode harfli alan adları (`örnek.com.tr`) ve punycode (`xn--…`) kabul edilir.
+  - Denetim kod noktası düzeyinde yapılır: C#'ta `Rune.IsLetter` / `Rune.IsDigit`, JavaScript'te `u` bayraklı `\p{L}` / `\p{Nd}`. Böylece BMP dışındaki harfler de (ör. `codex@𐐀.example`) iki tarafta aynı sonucu verir.
+- Bu yalnızca bir biçim kontrolüdür; adresin gerçekten var olduğunu kanıtlamaz. Tam RFC 5321/5322 ya da IDNA doğrulaması, DNS sorgusu veya e-posta gönderimi yapılmaz.
+- .NET ve tarayıcının kullandığı Unicode sürümleri farklı olabilir. Bu nedenle çok yeni eklenmiş karakterlerde iki taraf farklı sonuç verebilir; böyle bir durumda sunucunun kararı geçerlidir.
+
+### Karakter sayımı ve kırpma
 
 - "Karakter", Unicode kod noktası anlamına gelir. Örneğin 😀 tek bir kod noktasıdır. Ekranda tek simge gibi görünen birleşik emojiler ise birden fazla sayılır; örneğin 👨‍👩‍👧, sıfır genişlikli birleştiricilerle birlikte 5 kod noktasıdır. Bu sayım C#'ta `EnumerateRunes()`, JavaScript'te `[...metin].length`, PostgreSQL'de `char_length()` ile aynı sonucu verir.
 - Kırpma Unicode boşluk karakterlerine uygulanır.
@@ -220,7 +239,7 @@ Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama 
 
 - Canlı yayın yapılmadı. Render ve Neon'a bağlanılmadı. Canlı ortamda Neon bağlantı dizesi Npgsql biçimine çevrilip `ConnectionStrings__Postgres` olarak verilecek; Render tarafındaki port ayarı da o aşamada kontrol edilecek. Konteyner 8080 portunu dinliyor.
 - Hız sınırı, uygulamaya özel istek gövdesi boyut sınırı ve güvenlik başlıkları (CSP vb.) henüz yok. Şu an Kestrel'in varsayılan gövde sınırı (yaklaşık 30 MB) geçerli.
-- E-postanın yerel kısmı (`@` öncesi) yalnızca boşluk, kontrol karakteri ve `@` açısından denetleniyor. Örneğin `<` ve `>` bu kısımda hâlâ kabul ediliyor.
+- E-postada tırnaklı ve ASCII dışı yerel kısımlar kabul edilmiyor. Biçim kontrolü adresin var olduğunu kanıtlamıyor.
 - İdempotency anahtarı yok. Yanıtı kaybolan bir isteği kullanıcı elle yeniden gönderirse aynı talep iki kez kaydedilebilir. Arayüz bu durumu ağ hatası mesajında belirtiyor.
 - Gerçek PostgreSQL'e bağlanan otomatik entegrasyon testi yok; kalıcılık komut satırından kontrol edildi.
 - JavaScript kapalıyken form gönderilemez. Bu durumda `noscript` uyarısı gösterilir; `method="post"` sayesinde girilen bilgiler URL'ye yazılmaz.

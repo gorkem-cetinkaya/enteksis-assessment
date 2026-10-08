@@ -176,6 +176,11 @@ public class ServiceRequestValidatorTests
     [InlineData("deniz@123.example.com")]
     [InlineData("deniz@örnek.com.tr")]
     [InlineData("deniz@xn--rnek-zoa.com.tr")]
+    [InlineData("o'brien@example.com")]
+    [InlineData("deniz_ornek@example.com")]
+    [InlineData("deniz-ornek.test+etiket@example.com")]
+    [InlineData("a!#$%&'*+/=?^_`{|}~-z@example.com")]
+    [InlineData("codex@\U00010400.example")] // U+10400 is a letter outside the BMP
     public void Valid_email_is_accepted(string email)
     {
         Assert.NotNull(ValidateWith("email", email).Request);
@@ -199,6 +204,16 @@ public class ServiceRequestValidatorTests
     [InlineData("deniz@exa_mple.com")]
     [InlineData("deniz@-example.com")]
     [InlineData("deniz@example-.com")]
+    [InlineData("codex<phase2>@example.com")]
+    [InlineData(".deniz@example.com")]
+    [InlineData("deniz.@example.com")]
+    [InlineData("de..niz@example.com")]
+    [InlineData("deniz\n@example.com")]
+    [InlineData("deniz(yorum)@example.com")]
+    [InlineData("deniz,ornek@example.com")]
+    [InlineData("\"deniz\"@example.com")] // quoted local parts are out of scope
+    [InlineData("dеniz@example.com")] // Cyrillic "е": non-ASCII local parts are out of scope
+    [InlineData("deniz@\U0001F600.example")] // an emoji is not a letter
     public void Malformed_email_is_rejected(string email)
     {
         Assert.Equal("Geçerli bir e-posta adresi girin.", SingleError(ValidateWith("email", email), "email"));
@@ -215,13 +230,24 @@ public class ServiceRequestValidatorTests
     [Fact]
     public void Email_may_be_254_characters_but_not_more()
     {
-        const string domain = "@example.com";
-        var longest = new string('a', 254 - domain.Length) + domain;
+        // 64 + "@" + 189 = 254, with domain labels of at most 63 characters.
+        var longest = new string('a', 64) + "@" + new string('b', 63) + "." + new string('c', 63) + "."
+            + new string('d', 57) + ".com";
+        Assert.Equal(254, longest.Length);
 
         Assert.NotNull(ValidateWith("email", longest).Request);
         Assert.Equal(
             "E-posta en fazla 254 karakter olabilir.",
-            SingleError(ValidateWith("email", "a" + longest), "email"));
+            SingleError(ValidateWith("email", longest.Replace("@b", "@bb")), "email"));
+    }
+
+    [Fact]
+    public void Email_local_part_may_be_64_characters_but_not_more()
+    {
+        Assert.NotNull(ValidateWith("email", new string('a', 64) + "@example.com").Request);
+        Assert.Equal(
+            "E-postanın @ işaretinden önceki kısmı en fazla 64 karakter olabilir.",
+            SingleError(ValidateWith("email", new string('a', 65) + "@example.com"), "email"));
     }
 
     [Theory]

@@ -82,6 +82,35 @@ public class ServiceRequestEndpointTests
     }
 
     [Fact]
+    public async Task Email_with_angle_brackets_in_the_local_part_returns_400_and_saves_nothing()
+    {
+        var store = new RecordingStore();
+        await using var app = new TestApp(store);
+        using var client = app.CreateClient();
+
+        var response = await PostJsonAsync(client, ValidJson.Replace("deniz.ornek@example.com", "codex<phase2>@example.com"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors");
+        Assert.Equal("Geçerli bir e-posta adresi girin.", errors.GetProperty("email")[0].GetString());
+        Assert.Empty(store.Saved);
+    }
+
+    [Fact]
+    public async Task Email_with_a_letter_outside_the_bmp_in_the_domain_is_saved()
+    {
+        // The browser accepts codex@𐐀.example (U+10400); the server must agree.
+        var store = new RecordingStore();
+        await using var app = new TestApp(store);
+        using var client = app.CreateClient();
+
+        var response = await PostJsonAsync(client, ValidJson.Replace("deniz.ornek@example.com", "codex@\U00010400.example"));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal("codex@\U00010400.example", Assert.Single(store.Saved).Email);
+    }
+
+    [Fact]
     public async Task Email_with_subdomain_and_plus_is_saved()
     {
         var store = new RecordingStore();

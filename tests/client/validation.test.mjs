@@ -53,7 +53,8 @@ const rejected = [
   ["name", "Deniz \ud800", "Ad soyad geçersiz karakter içeriyor."],
   ["email", "", "E-posta zorunludur."],
   ["email", "  ", "E-posta zorunludur."],
-  ["email", "a".repeat(243) + "@example.com", "E-posta en fazla 254 karakter olabilir."],
+  ["email", "a".repeat(64) + "@b" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(57) + ".com", "E-posta en fazla 254 karakter olabilir."],
+  ["email", "a".repeat(65) + "@example.com", "E-postanın @ işaretinden önceki kısmı en fazla 64 karakter olabilir."],
   ...[
     "deniz",
     "deniz@",
@@ -72,6 +73,16 @@ const rejected = [
     "deniz@exa_mple.com",
     "deniz@-example.com",
     "deniz@example-.com",
+    "codex<phase2>@example.com",
+    ".deniz@example.com",
+    "deniz.@example.com",
+    "de..niz@example.com",
+    "deniz\n@example.com",
+    "deniz(yorum)@example.com",
+    "deniz,ornek@example.com",
+    "\"deniz\"@example.com", // quoted local parts are out of scope
+    "dеniz@example.com", // Cyrillic "е": non-ASCII local parts are out of scope
+    "deniz@\u{1F600}.example", // an emoji is not a letter
   ].map((email) => ["email", email, "Geçerli bir e-posta adresi girin."]),
   ["service", "", "Hizmet seçimi zorunludur."],
   ...["consulting", "AI-TRIAGE", " ai-triage", "ai-triage "].map((service) => [
@@ -101,7 +112,13 @@ const accepted = [
   ["email", "deniz@123.example.com"],
   ["email", "deniz@örnek.com.tr"],
   ["email", "deniz@xn--rnek-zoa.com.tr"],
-  ["email", "a".repeat(242) + "@example.com"],
+  ["email", "a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(57) + ".com"],
+  ["email", "a".repeat(64) + "@example.com"],
+  ["email", "o'brien@example.com"],
+  ["email", "deniz_ornek@example.com"],
+  ["email", "deniz-ornek.test+etiket@example.com"],
+  ["email", "a!#$%&'*+/=?^_`{|}~-z@example.com"],
+  ["email", "codex@\u{10400}.example"], // U+10400 is a letter outside the BMP
   ["service", "workflow-automation"],
   ["service", "api-integration"],
   ["service", "ai-triage"],

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -25,21 +26,25 @@ public static partial class ServiceRequestValidator
     public const int NameMinLength = 2;
     public const int NameMaxLength = 100;
     public const int EmailMaxLength = 254;
+    public const int EmailLocalPartMaxLength = 64;
     public const int DescriptionMinLength = 10;
     public const int DescriptionMaxLength = 2000;
 
     public static readonly IReadOnlyList<string> ServiceCodes = ["workflow-automation", "api-integration", "ai-triage"];
 
-    // One domain label: letters or digits, with hyphens only inside
-    // ("mail", "my-company", "örnek", "xn--rnek-zoa").
-    private const string DomainLabel = @"[\p{L}\p{Nd}](?:[\p{L}\p{Nd}-]*[\p{L}\p{Nd}])?";
+    private const string InvalidEmailMessage = "Geçerli bir e-posta adresi girin.";
 
-    // local@domain. The local part may not contain whitespace, control
-    // characters or a second "@". The domain is two or more labels joined by
-    // dots, so characters such as "/", "<", ">" or "_" and empty labels
-    // ("a..b", ".a", "a.") are rejected. Not a full RFC 5321/5322 check.
-    [GeneratedRegex(@"^[^\s@\p{Cc}]+@(?:" + DomainLabel + @"\.)+" + DomainLabel + "$")]
-    private static partial Regex EmailPattern();
+    // E-mail = local part "@" domain; a format check only, it does not prove
+    // that the address exists. Not a full RFC 5321/5322 or IDNA check.
+    //
+    // Local part: ASCII "dot-atom" (RFC 5322). One or more non-empty parts
+    // joined by dots, each made of letters, digits and
+    // ! # $ % & ' * + - / = ? ^ _ ` { | } ~. Leading, trailing or repeated
+    // dots, spaces, control characters, "<" and ">" are rejected. Quoted and
+    // non-ASCII local parts are out of scope. \z instead of $: in .NET, $ also
+    // matches before a final "\n".
+    [GeneratedRegex(@"^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*\z")]
+    private static partial Regex EmailLocalPartPattern();
 
     /// <param name="body">The parsed request body; must be a JSON object.</param>
     public static ServiceRequestValidationResult Validate(JsonElement body)
@@ -148,7 +153,53 @@ public static partial class ServiceRequestValidator
             return $"E-posta en fazla {EmailMaxLength} karakter olabilir.";
         }
 
-        return EmailPattern().IsMatch(value) ? null : "Geçerli bir e-posta adresi girin.";
+        // "@" is not allowed in either part, so a valid address splits into exactly two.
+        var parts = value.Split('@');
+        if (parts.Length != 2)
+        {
+            return InvalidEmailMessage;
+        }
+
+        var (localPart, domain) = (parts[0], parts[1]);
+        if (CountCharacters(localPart) > EmailLocalPartMaxLength)
+        {
+            return $"E-postanın @ işaretinden önceki kısmı en fazla {EmailLocalPartMaxLength} karakter olabilir.";
+        }
+
+        return EmailLocalPartPattern().IsMatch(localPart) && IsValidDomain(domain) ? null : InvalidEmailMessage;
+    }
+
+    // Domain: two or more labels joined by dots ("mail.example.com.tr").
+    private static bool IsValidDomain(string domain)
+    {
+        var labels = domain.Split('.');
+        return labels.Length >= 2 && labels.All(IsValidDomainLabel);
+    }
+
+    // A label is letters or decimal digits of any script, with hyphens only
+    // inside ("mail", "my-company", "örnek", "xn--rnek-zoa"). It is checked per
+    // code point (Rune), not per UTF-16 char, so that letters outside the BMP
+    // such as U+10400 are treated like \p{L} / \p{Nd} with the u flag in
+    // validation.js.
+    private static bool IsValidDomainLabel(string label)
+    {
+        var runes = label.EnumerateRunes().ToArray();
+        if (runes.Length == 0)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < runes.Length; i++)
+        {
+            var isLetterOrDigit = Rune.IsLetter(runes[i]) || Rune.IsDigit(runes[i]);
+            var isInnerHyphen = runes[i].Value == '-' && i > 0 && i < runes.Length - 1;
+            if (!isLetterOrDigit && !isInnerHyphen)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static string? CheckService(string value)
