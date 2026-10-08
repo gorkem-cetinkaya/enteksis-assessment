@@ -10,7 +10,12 @@ Enteksis uygulama çalışması. Uygulama, müşteri taleplerini e-posta ile Exc
 
 Hizmetler yalnızca tanıtılır. Uygulamada gerçek LLM çağrısı ya da otomasyon motoru yoktur.
 
-> **Durum: 3. aşama.** Tanıtım sayfası ve talep formu yerelde çalışıyor; geçerli talepler gerçek bir PostgreSQL veritabanına kalıcı olarak kaydediliyor. Bu aşamada şunlar eklendi: API sınırları, tarayıcı güvenlik başlıkları, gerçek PostgreSQL ile otomatik testler, `/health` uç noktası ve yayın hazırlığı. Canlı yayın (Render + Neon) henüz yapılmadı. Ayrıntılar için [bilinen eksikler](#bilinen-eksikler-ve-sonraki-aşamalar) bölümüne bakın.
+> **Durum: yayında.**
+>
+> - Canlı adres: <https://enteksis-assessment.onrender.com>
+> - Kaynak kod: <https://github.com/gorkem-cetinkaya/enteksis-assessment>
+>
+> Uygulama Render'da çalışıyor; veriler Neon PostgreSQL'de tutuluyor. Doğrulanmış yayın sonuçları ve bunları kimin yaptığı [gerçek yayın sonuçları](#gerçek-yayın-sonuçları) bölümünde; kalan sınırlamalar [bilinen eksikler](#bilinen-eksikler) bölümünde.
 
 ## Sayfa
 
@@ -91,7 +96,7 @@ Veriler `postgres-data` adlı named volume'de saklanır ve `docker compose down`
   - `X-Content-Type-Options: nosniff`
   - `Referrer-Policy: no-referrer`
   - Sayfa satır içi script ya da stil kullanmadığı için `unsafe-inline` gerekmez.
-  - HTTPS yönlendirmesi ya da proxy güven ayarı eklenmedi; Render'daki HTTPS davranışı yayın aşamasında kontrol edilecek.
+  - Uygulamaya HTTPS yönlendirmesi ya da proxy güven ayarı eklenmedi. HTTPS'i Render sağlıyor; canlıda `http://` isteğinin `https://` adrese yönlendiği görüldü (Codex kontrolü).
 - **Arayüz:**
   - `429` ve `413` yanıtlarında talebin kaydedilmediği ve ne yapılması gerektiği anlatılır.
   - Tarayıcı 30 saniye içinde yanıt alamazsa beklemeyi bırakır ve kaydın yapılıp yapılmadığının bilinmediğini söyler. Tarayıcının beklemeyi bırakması, sunucudaki işlemin iptal edildiği anlamına gelmez.
@@ -295,9 +300,13 @@ Adres `yerel-kısım@alan.adı` biçiminde olmalı ve tam olarak bir `@` içerme
 
 Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama her açılışta bu betiği çalıştırır. Veritabanına ulaşılamazsa uygulama başlamaz ve çıkış kodu 1 ile kapanır. `compose.yaml` içindeki `restart: on-failure` ayarı, veritabanı yeniden erişilebilir olana kadar uygulamayı tekrar başlatır.
 
-## Yayın hazırlığı: Render + Neon (Frankfurt)
+## Yayın: Render + Neon
 
-Bu adımlar henüz uygulanmadı; yayın aşamasında izlenecek. Gerçek bağlantı bilgileri yalnızca Render'ın ortam değişkenlerine girilir; repoya ya da sohbete yazılmaz.
+Canlı adres: <https://enteksis-assessment.onrender.com>
+
+### Kurulum adımları
+
+Gerçek bağlantı bilgileri yalnızca Render'ın gizli ortam değişkenlerine girilir; repoya ya da sohbete yazılmaz.
 
 1. **Neon:** Neon projesi zaten mevcut; ikinci bir proje oluşturulmaz. Mevcut kaynaklar:
    - Proje `enteksis-assessment`, bölge AWS Europe Central 1 (Frankfurt)
@@ -327,22 +336,51 @@ Bu adımlar henüz uygulanmadı; yayın aşamasında izlenecek. Gerçek bağlant
    - `RENDER_GIT_COMMIT` elle girilmez; değeri Render sağlar.
 3. **Port uyumu:** Render belgelerine göre web servisi `0.0.0.0` adresine bağlanmalı ve `PORT` değişkeninin varsayılanı `10000`'dir. Uygulama `ASPNETCORE_HTTP_PORTS=8080` ile tüm adreslerde 8080 portunu dinlediği için Render'da `PORT=8080` verilmelidir; iki değer aynı olmalı.
 4. **Commit bilgisi:** `RENDER_GIT_COMMIT` değişkenini Render ayarlar ("the commit SHA for a service or deploy"). `/health` yanıtındaki `commit` bu değeri gösterir.
-5. **Yayından sonra:**
-   - `https://<servis>.onrender.com/health` adresindeki `commit` değeri teslim commit'iyle aynı olmalı.
-   - Formdan kurgusal bir talep gönderilmeli; yeniden deploy'dan sonra kaydın Neon'da durduğu doğrulanmalı.
-   - HTTPS davranışı kontrol edilmeli.
-6. **Render Free:** Render belgelerine göre ücretsiz servis 15 dakika trafik almazsa uyur ve uyanması yaklaşık 1 dakika sürer. Dosya sistemi geçicidir; veriler Neon'da tutulduğu için bu bir sorun değildir.
+5. **Render Free:** Render belgelerine göre ücretsiz servis 15 dakika trafik almazsa uyur ve uyandıktan sonraki ilk istek yaklaşık 1 dakika sürebilir. Dosya sistemi geçicidir; veriler Neon'da tutulduğu için bu bir sorun değildir.
 
-## Bilinen eksikler ve sonraki aşamalar
+### Gerçek yayın sonuçları
 
-- Canlı yayın yapılmadı; Render'a ve Neon'a bağlanılmadı. Yukarıdaki adımlar ve Render'daki HTTPS kontrolü yayın aşamasında yapılacak.
+Aşağıda her kontrolü kimin yaptığı ayrıca belirtilmiştir. Yapay zekâ araçlarının kontrolleri adayın kişisel testi olarak sayılmaz.
+
+- **GitHub (Claude, 8 Ekim):**
+  - Yerel `main` dalı 22 commit ile normal push yapılarak gönderildi; force push yapılmadı.
+  - Oturum açılmadan alınan bir klonda bütün commit'lerin SHA, yazar, tarih ve `Co-Authored-By` satırlarının yerel geçmişle aynı olduğu görüldü.
+  - Depo public ve oturumsuz açılıyor.
+- **İlk yayın (aday):**
+  - Aday Render web servisini kendi hesabında oluşturdu, mevcut Neon bağlantısını gizli ortam değişkeni olarak girdi ve yayını başlattı.
+  - Paylaştığı Render ekranında `Deploy succeeded | Live` durumu ve `8d70979` commit'i görünüyordu.
+  - Loglarda şemanın uygulandığı ve uygulamanın Production ortamında 8080 portunu dinlediği yazıyordu.
+- **Canlı kontroller (Codex, 8–9 Ekim):**
+  - `/health` 200 döndü ve tam SHA `8d70979af2ceb56184f95884a290ce0a3b002728` değerini gösterdi; bu, GitHub'daki ve yereldeki HEAD ile aynı.
+  - Sayfa, `app.js`, `styles.css` ve `validation.js` 200 döndü; yanıtlarda CSP, `nosniff` ve `no-referrer` başlıkları vardı.
+  - `http://` adresi `https://` adrese yönlendi.
+  - API'ye `{}` gönderildiğinde 400 ve dört alan hatası döndü. Bu istekte kayıt sayısı ayrıca sorgulanmadı.
+  - Tarayıcıda boş form dört hata gösterdi. Kurgusal bir gönderim başarılı oldu: talep numarası `fb31e70e-a8b6-46bb-9be1-83363ae68323`.
+- **Kalıcılık (aday; ekranları Codex karşılaştırdı):**
+  - Aday bu kaydı Neon SQL Editor'da sorguladı: 1 satır, hizmet `api-integration`, zaman `2026-10-08 20:30:07.419277+00`.
+  - Aday aynı commit'i Render'dan elle yeniden yayımladı ve sorguyu tekrarladı. Kimlik, hizmet ve zaman aynı çıktı; yani kayıt yeniden yayından sonra da korundu.
+  - Codex yeniden yayından sonra `/health`'i tekrar sorguladı: 200 ve aynı SHA.
+- **Safari (adayın kişisel testi, 9 Ekim):**
+  - Aday canlı formu Safari'de kendisi kullandı. Boş gönderimde dört alan hatasını gördü; e-posta hatası sırasında diğer alanlardaki bilgiler korundu; düzeltip gönderince başarı mesajı geldi (talep numarası `c4c3bee2-63a2-47b5-aeee-3677e3698dd1`).
+  - Bu kimlik için ayrıca Neon sorgusu yapılmadı.
+  - Bu, belirtilen temel akışların testidir; kapsamlı bir Safari uyumluluk testi değildir.
+- **Doğrulama özeti sorunu:**
+  - Aday Safari'de, son hatalı alan düzeltildiği hâlde "Lütfen işaretli alanları düzeltin." uyarısının kaldığını fark etti.
+  - Codex sorunu yerelde yeniden üretti; Claude düzeltti (`2c623c0`).
+  - Artık son işaretli alan da düzeltilince yalnızca bu özet kalkıyor. Ağ, sunucu, zaman aşımı, 429 ve 413 uyarıları alan düzenlenince silinmiyor.
+- **Henüz denenmeyen:** 15 dakikadan uzun bekleme sonrasındaki soğuk başlangıç denenmedi; olası gecikme yukarıdaki Render Free maddesinde.
+- **Son sürüm:** Bu belgeyi içeren commit push edildikten sonra Render'ın yeni sürümü yayımladığı ve `/health`'in yeni SHA'yı gösterdiği ayrıca kontrol edilir. Bir commit kendi SHA'sını içeremeyeceği için bu son kontrolün sonucu bu belgede yer almaz.
+
+## Bilinen eksikler
+
 - Hız sınırı sayacı bilinçli olarak tek ve ortaktır: yeniden başlatmada sıfırlanır, birden fazla örnek arasında paylaşılmaz ve DDoS koruması değildir.
+- Render Free'de servis bir süre boşta kaldıktan sonraki ilk istek yaklaşık 1 dakika sürebilir. Bu soğuk başlangıç gerçek bir bekleme ile denenmedi; uygulamayı uyanık tutmak için bir ping ya da cron eklenmedi.
 - `/health` veritabanını kontrol etmiyor.
 - E-postada tırnaklı ve ASCII dışı yerel kısımlar kabul edilmiyor. Biçim kontrolü adresin var olduğunu kanıtlamıyor.
 - İdempotency anahtarı yok. Yanıtı kaybolan bir isteği kullanıcı elle yeniden gönderirse aynı talep iki kez kaydedilebilir. Arayüz bu durumu ağ hatası mesajında belirtiyor.
 - JavaScript kapalıyken form gönderilemez. Bu durumda `noscript` uyarısı gösterilir; `method="post"` sayesinde girilen bilgiler URL'ye yazılmaz.
 - Docker dışında `dotnet run` ile çalıştırma belgelenmedi ve denenmedi.
-- Sayfa gerçek bir ekran okuyucuyla, Safari'de ya da Firefox'ta denenmedi. Hizmet seçim kutusu tarayıcının yerel öğesidir ve otomasyon aracıyla klavyeden sürülemedi; yalnızca seçilmiş değerle klavye akışı denendi.
+- Aday Safari'de yukarıda belirtilen temel form akışlarını denedi. Kapsamlı tarayıcı uyumluluk testi, ekran okuyucu testi ve Firefox testi yapılmadı. Hizmet seçim kutusu tarayıcının yerel öğesidir ve otomasyon araçlarıyla klavyeden sürülemedi; yalnızca seçilmiş değerle klavye akışı denendi.
 - 1. aşamada, `dotnet` PID 1 iken başlangıç hatasında süreç kapanmadan %100'e yakın CPU kullanarak takılı kalmıştı; `docker run --init` ile çalıştırıldığında ise normal şekilde çıkmıştı. Bu durum önce çıkış kodu döndürülerek giderildi, 3. aşamada imaja `tini` eklendi. Eski takılmanın kök nedeni doğrulanmadı.
 
 ## AI kullanımı

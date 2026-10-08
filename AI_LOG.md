@@ -171,7 +171,7 @@ Bu bölüm 1. aşamanın sonunda boştu. Codex'in incelemesi ve adayın bu incel
 
 ## Aşama 1 Codex incelemesi
 
-Bu bölüm, Codex'in 1. aşama inceleme notunun (`/private/tmp/enteksis-phase1-review-20261008.md`) özetidir. Buradaki kontrolleri Codex yaptı. Claude bunları tekrarlamadı; yalnızca iki bulguyu düzeltmeden önce kendisi yeniden üretti (2. aşama bölümüne bakın). Bu kontroller adayın kişisel manuel testi değildir.
+Bu bölüm, Codex'in 1. aşama inceleme notunun özetidir. Buradaki kontrolleri Codex yaptı. Claude bunları tekrarlamadı; yalnızca iki bulguyu düzeltmeden önce kendisi yeniden üretti (2. aşama bölümüne bakın). Bu kontroller adayın kişisel manuel testi değildir.
 
 - **Kapsam:** İnceleme 8 Ekim 2026'da `c6779b8` commit'i üzerinde yapıldı. Notta belirtildiğine göre Codex kodu değiştirmedi, commit ya da push yapmadı ve bulut kaynaklarına erişmedi.
 - **Codex'in doğruladıkları (nota göre):**
@@ -346,7 +346,7 @@ Aşağıdakiler test aracının sınırlarıdır, sayfa sorunu değildir:
 
 ## Aşama 2 Codex incelemesi
 
-Bu bölüm, Codex'in 2. aşama inceleme notunun (`/private/tmp/enteksis-phase2-review.md`) özetidir. Buradaki kontrolleri Codex yaptı; bunlar adayın kişisel manuel testi değildir.
+Bu bölüm, Codex'in 2. aşama inceleme notunun özetidir. Buradaki kontrolleri Codex yaptı; bunlar adayın kişisel manuel testi değildir.
 
 - **Kapsam:** İnceleme 8 Ekim 2026'da `4abd361` commit'i üzerinde yapıldı. Codex kodu değiştirmedi, commit ya da push yapmadı ve Render ile Neon'a erişmedi.
 - **Son teslim:** Notta adayın bildirdiği kesin son teslim zamanı 9 Ekim 2026, 12:49:46 (İstanbul) olarak yazıyor.
@@ -366,7 +366,7 @@ Bu bölüm, Codex'in 2. aşama inceleme notunun (`/private/tmp/enteksis-phase2-r
 
 ## Aşama 3: Doğrulama, sınırlar, güvenlik başlıkları, gerçek veritabanı testleri ve yayın hazırlığı
 
-Aday, `/private/tmp/enteksis-phase3-task.md` dosyasındaki görevin uygulanmasını istedi. Claude bu aşamanın ilk komutunu 2026-10-08 20:10:29 (+03) saatinde çalıştırdı. Yayın yapılmadı, Render ve Neon'a bağlanılmadı; remote oluşturulmadı ve push yapılmadı.
+Aday, Codex ile hazırladığı 3. aşama görev dosyasının uygulanmasını istedi. Claude bu aşamanın ilk komutunu 2026-10-08 20:10:29 (+03) saatinde çalıştırdı. Yayın yapılmadı, Render ve Neon'a bağlanılmadı; remote oluşturulmadı ve push yapılmadı.
 
 ### Görev özeti
 
@@ -476,7 +476,7 @@ Not: Ana makinede `DOCKER_HOST` var olmayan bir sokete yönlendirildiğinde test
 
 ## Aşama 3 Codex incelemesi
 
-Bu bölüm, Codex'in 3. aşama inceleme notunun (`/private/tmp/enteksis-phase3-review.md`) özetidir. Buradaki kontrolleri Codex yaptı; bunlar adayın kişisel manuel testi değildir.
+Bu bölüm, Codex'in 3. aşama inceleme notunun özetidir. Buradaki kontrolleri Codex yaptı; bunlar adayın kişisel manuel testi değildir.
 
 - **Kapsam ve sonuç:**
   - İnceleme 8 Ekim 2026'da `2b601907be0ea85d18cd5e15a581c3311432bc02` commit'i üzerinde yapıldı.
@@ -519,24 +519,80 @@ Bu bölüm, Codex'in 3. aşama inceleme notunun (`/private/tmp/enteksis-phase3-r
   - Yayın yapılmadan canlı adres, SHA ya da sonuç yazılmamalı.
   - Aday GitHub deposunun Public olmasını 8 Ekim'de açıkça seçti.
 
-## Aşama 4: Yayın hazırlığı (sürüyor)
+## Aşama 4: Yayın ve teslim hazırlığı
 
-Aday `/private/tmp/enteksis-phase4-task.md` dosyasındaki planla 4. aşamaya geçti. Bu turun kapsamı belgelerin güncellenmesi ve GitHub aktarımıdır; Render ve Neon'da işlem yapılmadı. Claude bu turun ilk komutunu 2026-10-08 23:04:06 (+03) saatinde çalıştırdı.
+Aday 4. aşamayı Codex ile hazırladığı yayın planıyla başlattı; son kısım için plan ilk canlı incelemeden sonra güncellendi. Bu bölümde her işi kimin yaptığı ayrıca belirtiliyor.
+
+### 4a. Belgeler ve GitHub aktarımı (8 Ekim; Claude'un ilk komutu 23:04:06, +03)
 
 - **Aday tarafından yapılanlar:**
   - GitHub'da `gorkem-cetinkaya/enteksis-assessment` deposunu Public ve boş olarak oluşturdu.
   - Neon projesini hazırladı: `enteksis-assessment`, Frankfurt, dal `production`, veritabanı `neondb`, rol `neondb_owner`, connection pooling açık.
-  - Render hesabını hazırladı; Render web servisi henüz oluşturulmadı.
-- **Claude'un bu turdaki işi:**
-  - README'deki Neon adımı mevcut projeyi kullanacak şekilde güncellendi: pooler adresi ve Npgsql anahtar/değer biçimi; `postgresql://` URI'si kullanılmıyor ve sertifika doğrulaması kapatılmıyor.
-  - Render adımlarına `main` dalı ve Free instance eklendi.
-  - Codex'in 3. aşama incelemesi bu dosyaya eklendi.
-- **Doğrulama (Claude, oturum açmadan):**
-  - Hedef depo `gorkem-cetinkaya/enteksis-assessment`, public ve boştu: `git ls-remote` ref döndürmedi, GitHub API boyutu 0 gösterdi.
-  - Yerelde `main` dalında 21 commit vardı, çalışma ağacı temizdi ve remote tanımlı değildi.
-- **Henüz yapılmayanlar:**
-  - GitHub aktarımı bu belge commit'inden sonra normal push ile yapılacak; sonucu bir sonraki belge güncellemesinde kaydedilecek.
-  - Canlı yayın, canlı doğrulama ve adayın canlı formu denemesi henüz yapılmadı.
+  - Render hesabını hazırladı.
+- **Claude'un işi:**
+  - README'deki Neon adımı mevcut projeyi kullanacak şekilde güncellendi (pooler adresi, Npgsql anahtar/değer biçimi, sertifika doğrulaması açık); Render adımlarına `main` dalı ve Free instance eklendi.
+  - Codex'in 3. aşama incelemesi bu dosyaya eklendi (`8d70979`).
+  - Daha önce remote yoktu; `origin` eklendi. Push'tan hemen önce GitHub deposunun boş olduğu görüldü.
+  - `git push -u origin main` ile 22 commit normal push yapılarak gönderildi. Kimlik bilgisi macOS anahtar zincirinde kayıtlıydı; force push yapılmadı ve geçmiş değiştirilmedi.
+- **Push sonrası doğrulama (Claude, oturum açmadan):**
+  - Yerel HEAD, `origin/main`, `git ls-remote` ve GitHub API'deki `main` aynı SHA'yı gösterdi: `8d70979af2ceb56184f95884a290ce0a3b002728`.
+  - GitHub API 22 commit gösterdi; ilk commit `15d44bf` GitHub'da mevcut.
+  - Kimlik bilgisi kullanılmadan alınan bir klonda 22 commit'in SHA, yazar, e-posta, tarih ve konusu yerel geçmişle birebir aynıydı. `Co-Authored-By` satırı 22 commit'in 22'sinde vardı.
+  - 38 dosya gönderildi; gerçek bir `.env` dosyası ya da `.claude` klasörü yoktu.
+  - Depo sayfası, SHA'ya sabitlenmiş AI_LOG bağlantısı ve raw README oturumsuz olarak 200 döndü.
+
+### 4b. İlk yayın, canlı kontroller ve kalıcılık (8–9 Ekim)
+
+- **Aday (Render):**
+  - Web servisini kendi hesabında oluşturdu, mevcut Neon bağlantısını Render'ın gizli ortam değişkenine girdi ve ilk yayını başlattı.
+  - Paylaştığı Render ekranında `Deploy succeeded | Live` durumu ve kaynak `8d70979` vardı.
+  - Loglarda şemanın uygulandığı, uygulamanın Production ortamında 8080 portunu dinlediği ve canlı adres yazıyordu.
+- **Codex (HTTP ve tarayıcı kontrolleri; adayın testi değildir):**
+  - `https://enteksis-assessment.onrender.com/health` 200 döndü ve tam SHA `8d70979af2ceb56184f95884a290ce0a3b002728` değerini gösterdi; bu, GitHub ve yerel HEAD ile aynı.
+  - Sayfa ve üç statik dosya 200 döndü; yanıtlarda CSP, `nosniff` ve `no-referrer` başlıkları vardı.
+  - `http://` isteği `https://` adrese yönlendi.
+  - API'ye `{}` gönderildiğinde 400 ve dört alan hatası döndü. Bu istekte veritabanı ayrıca sorgulanmadı.
+  - Tarayıcıda boş form dört hata gösterdi.
+  - Kurgusal bir gönderimde önce "Gönderiliyor…", sonra başarı mesajı görüldü ve form temizlendi. Talep numarası `fb31e70e-a8b6-46bb-9be1-83363ae68323`.
+  - Tarayıcı günlüğünde hata görülmedi.
+  - Bu ilk yanıtlar hızlıydı; bu bir soğuk başlangıç testi değildi.
+- **Kalıcılık (sorguları ve yeniden yayını aday yaptı, ekranları Codex karşılaştırdı):**
+  - Aday Neon SQL Editor'da (`production` dalı, `neondb`) `fb31e70e…` kaydını sorguladı: 1 satır, hizmet `api-integration`, zaman `2026-10-08 20:30:07.419277+00`.
+  - Aday aynı commit'i Render panelinden elle yeniden yayımladı. Render'da yayın zamanı 9 Ekim 01:01:24 (+03); logda canlıya geçiş 01:02:13.
+  - Aday sorguyu tekrarladı ve aynı satır döndü: kimlik, hizmet ve zaman aynıydı. Böylece kaydın yeniden yayından sonra korunduğu doğrulandı.
+  - Codex yeniden yayından sonra `/health`'i tekrar sorguladı: 200 ve aynı SHA.
+
+### 4c. Safari'de bulunan doğrulama özeti sorunu ve düzeltmesi (9 Ekim; Claude'un ilk komutu 01:22:26, +03)
+
+- **Bulan:** Aday, Safari'deki kişisel testinde (aşağıdaki tabloya bakın). Son hatalı alan düzeltildiğinde alan işareti kalkıyor, ama "Lütfen işaretli alanları düzeltin." uyarısı yeniden gönderime kadar kalıyordu.
+- **Yeniden üreten:** Codex, yerel uygulamada; geçerli form göndermedi. Nedeni de doğruladı: `input` dinleyicisi alan hatasını temizliyor ama genel uyarıyı güncellemiyordu.
+- **Claude'un yeniden üretmesi:** Yerel uygulamada yalnızca e-posta hatalıyken form gönderildi; istemci doğrulaması isteği durdurdu. E-posta gerçek tuş basışlarıyla düzeltildi; işaretli alan kalmadığı hâlde uyarı duruyordu.
+- **Düzeltme (Claude, `2c623c0`):**
+  - Form, genel uyarının doğrulama özeti olup olmadığını bir bayrakla tutuyor.
+  - İşaretli bir alan düzenlenirken hiçbir alan işaretli kalmamışsa yalnızca bu özet temizleniyor.
+  - Diğer uyarılar (ağ, zaman aşımı, 500, 429, 413) alan düzenlenince silinmiyor.
+  - Otomatik gönderim ya da odak taşıma eklenmedi.
+  - E-posta kuralları, API, veritabanı ve tasarım değiştirilmedi.
+- **Claude'un kontrolleri (yerel uygulama, uygulama içi tarayıcı; insan testi değildir):**
+  - **Gerçek:**
+    - Tek hata: e-posta hâlâ geçersizken özet kaldı; düzelince kalktı. Odak yerinde kaldı ve diğer değerler korundu.
+    - İki hata: e-posta düzelince özet kaldı, çünkü açıklama hâlâ hatalıydı; açıklama da düzelince kalktı.
+    - Normal gönderim yerelde başarılı oldu (yerel kurgusal kayıt `6cb18788-0ffa-4a9d-8da0-8d257794461a`); form temizlendi ve odak başarı mesajına geçti.
+    - Gerçek ağ hatası (uygulama konteyneri durduruldu): uyarı, açıklamaya yazdıktan sonra da kaldı.
+  - **Simüle (`fetch` geçici olarak değiştirildi; istek gönderilmedi):**
+    - 500, 429 (`Retry-After: 42`), 413 ve 30 saniyelik zaman aşımı uyarıları alana yazdıktan sonra da kaldı.
+    - Sunucudan gelen 400 alan hatası düzeltilince özet kalktı.
+  - Canlı sunucuda hata ya da yük testi yapılmadı.
+
+### 4d. Son sürüm
+
+- **Testler:** Bu belge commit'inden hemen önce, aynı uygulama koduyla (`2c623c0`) çalıştırıldı:
+  - `dotnet build ServiceRequests.slnx`: 0 uyarı, 0 hata
+  - `dotnet test ServiceRequests.slnx`: uygulama testleri 122/122, gerçek PostgreSQL testleri 4/4, atlanan yok
+  - `node --test tests/client/validation.test.mjs`: 75/75, atlanan yok
+  - Toplam 201 test geçti.
+- **Push sonrası:** Bu belge commit'i normal push ile gönderildikten sonra Render'ın yeni sürümü yayımladığı, `/health`'in yeni SHA'yı gösterdiği ve düzeltmenin canlı formda çalıştığı kontrol edilecek. Bir commit kendi SHA'sını içeremeyeceği için bu kontrollerin sonucu bu dosyada değil, teslim raporunda yer alır.
+- **Teslim:** Değerlendirme portalındaki teslimi aday yapacak.
 
 ## Adayın kişisel manuel testi
 
@@ -547,3 +603,6 @@ Bu bölümde yalnızca adayın kendisinin bildirdiği kontroller yer alır.
 | 1. aşama | Aday ayrı bir kişisel manuel test bildirmedi; tamamlanmış sayılmıyor. |
 | 2. aşama (`4abd361` sürümü) | Aday uygulamayı kullandı, başarılı bir gönderim gördü ve "Bi sorun göremedim" diyerek sorun bildirmedi. Arayüzde gördüğü talep numarası `590370d6-0e9b-4b2f-98e3-ede44a8721a6` idi. Bu kaydı yerel PostgreSQL'de aday değil Codex sorguladı: hizmet `api-integration`, kayıt zamanı 8 Ekim 2026 20:02:14.993336 (İstanbul). Kullanılan tarayıcı ve diğer manuel test adımları tek tek bildirilmedi; bunlar yapılmış sayılmıyor. |
 | 3. aşama | Aday kişisel manuel test bildirmedi; tamamlanmış sayılmıyor. |
+| 4. aşama: canlı form, Safari (`8d70979` sürümü, 9 Ekim) | Aday canlı formu Safari'de kendisi kullandı ve şu sonuçları bildirdi: boş gönderimde dört alan uyarısını gördü; e-posta hatası sırasında diğer alanlardaki bilgiler korundu; e-postayı düzeltince alanın hata işareti kalktı ama "Lütfen işaretli alanları düzeltin." uyarısı kaldı (bunu fark edip ekran görüntüsüyle bildirdi); düzeltilmiş formu gönderince "Talebiniz kaydedildi. Talep numaranız: c4c3bee2-63a2-47b5-aeee-3677e3698dd1" mesajını gördü. Bu, belirtilen temel akışların testidir; kapsamlı Safari uyumluluk testi, ekran okuyucu ya da Firefox testi değildir. Bu kimlik için ayrıca bir Neon sorgusu bildirilmedi. |
+| 4. aşama: hesap ve veritabanı işlemleri | Aday Render servisini oluşturup yayımladı, aynı commit'i yeniden yayımladı ve `fb31e70e…` kaydını yeniden yayından önce ve sonra Neon SQL Editor'da sorguladı (ayrıntılar 4b'de). Bunlar form testi değil, yayın ve kalıcılık kontrolleridir. |
+| 4. aşama: düzeltmeden sonraki sürüm | Aday, `2c623c0` düzeltmesini içeren sürümü kişisel olarak denediğini henüz bildirmedi; tamamlanmış sayılmıyor. |
