@@ -29,9 +29,15 @@ public static partial class ServiceRequestValidator
 
     public static readonly IReadOnlyList<string> ServiceCodes = ["workflow-automation", "api-integration", "ai-triage"];
 
-    // local@domain without whitespace, control characters or a second "@";
-    // the domain needs at least one dot and no empty labels ("a..b", ".a", "a.").
-    [GeneratedRegex(@"^[^\s@\p{Cc}]+@(?:[^\s@\p{Cc}.]+\.)+[^\s@\p{Cc}.]+$")]
+    // One domain label: letters or digits, with hyphens only inside
+    // ("mail", "my-company", "örnek", "xn--rnek-zoa").
+    private const string DomainLabel = @"[\p{L}\p{Nd}](?:[\p{L}\p{Nd}-]*[\p{L}\p{Nd}])?";
+
+    // local@domain. The local part may not contain whitespace, control
+    // characters or a second "@". The domain is two or more labels joined by
+    // dots, so characters such as "/", "<", ">" or "_" and empty labels
+    // ("a..b", ".a", "a.") are rejected. Not a full RFC 5321/5322 check.
+    [GeneratedRegex(@"^[^\s@\p{Cc}]+@(?:" + DomainLabel + @"\.)+" + DomainLabel + "$")]
     private static partial Regex EmailPattern();
 
     /// <param name="body">The parsed request body; must be a JSON object.</param>

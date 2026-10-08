@@ -170,7 +170,7 @@ Kurallar istemcide (`wwwroot/validation.js`) ve sunucuda (`ServiceRequestValidat
 | Alan | Kural |
 | --- | --- |
 | `name` | Baştaki ve sondaki boşluklar kırpılır. 2–100 karakter olmalı ve kontrol karakteri içermemelidir. |
-| `email` | Boşluklar kırpılır. Zorunludur ve en fazla 254 karakter olabilir. `yerel@alan.adı` biçiminde olmalıdır: boşluk, kontrol karakteri ya da ikinci bir `@` içeremez; alan adında en az bir nokta bulunmalı ve boş etiket (`a..b`) olmamalıdır. |
+| `email` | Boşluklar kırpılır. Zorunludur ve en fazla 254 karakter olabilir. `yerel@alan.adı` biçiminde olmalıdır. Yerel kısım boşluk, kontrol karakteri ya da ikinci bir `@` içeremez. Alan adı noktayla ayrılmış en az iki etiketten oluşur. Her etiket harf ya da rakamla başlar ve biter; arada yalnızca harf, rakam ve tire bulunabilir. Bu nedenle `/`, `<`, `>`, `_` gibi karakterler ve boş etiketler (`a..b`, `.a`, `a.`) reddedilir. Alt alan adları (`mail.example.com.tr`), `+` içeren adresler ve Unicode harfli alan adları (`örnek.com.tr`) kabul edilir. Bu kural RFC'nin tamamını denetlemez. |
 | `service` | Yalnızca yukarıdaki üç koddan biri kabul edilir. Kırpma yapılmaz, büyük/küçük harf duyarlıdır. |
 | `description` | Baştaki ve sondaki boşluklar kırpılır. 10–2000 karakter olmalıdır. Sekme ve satır sonu serbesttir, diğer kontrol karakterleri reddedilir. |
 | Tüm alanlar | Eksik ya da `null` alan için "zorunludur", metin dışı tip için "metin olmalıdır" hatası döner. `id` veya `created_at` gibi bilinmeyen alanlar yok sayılır. |
@@ -196,6 +196,7 @@ Betik `CREATE TABLE IF NOT EXISTS` kullanır ve hiçbir veriyi silmez. Uygulama 
 - Tanıtım sayfasının içeriği (hizmetlerin anlatımı) ve görsel tasarım henüz yok; bu aşamada yalnızca sade bir form bulunuyor.
 - Canlı yayın yapılmadı. Render ve Neon'a bağlanılmadı. Canlı ortamda Neon bağlantı dizesi Npgsql biçimine çevrilip `ConnectionStrings__Postgres` olarak verilecek; Render tarafındaki port ayarı da o aşamada kontrol edilecek. Konteyner 8080 portunu dinliyor.
 - Hız sınırı, uygulamaya özel istek gövdesi boyut sınırı ve güvenlik başlıkları (CSP vb.) henüz yok. Şu an Kestrel'in varsayılan gövde sınırı (yaklaşık 30 MB) geçerli.
+- E-postanın yerel kısmı (`@` öncesi) yalnızca boşluk, kontrol karakteri ve `@` açısından denetleniyor. Örneğin `<` ve `>` bu kısımda hâlâ kabul ediliyor.
 - İdempotency anahtarı yok. Yanıtı kaybolan bir isteği kullanıcı elle yeniden gönderirse aynı talep iki kez kaydedilebilir. Arayüz bu durumu ağ hatası mesajında belirtiyor.
 - Gerçek PostgreSQL'e bağlanan otomatik entegrasyon testi yok; kalıcılık komut satırından kontrol edildi.
 - JavaScript kapalıyken form gönderilemez. Bu durumda `noscript` uyarısı gösterilir; `method="post"` sayesinde girilen bilgiler URL'ye yazılmaz.

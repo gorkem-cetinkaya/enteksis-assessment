@@ -159,6 +159,10 @@ public class ServiceRequestValidatorTests
     [InlineData("deniz.ornek@example.com")]
     [InlineData("deniz+test@mail.example.com.tr")]
     [InlineData("d@e.co")]
+    [InlineData("deniz@my-company.example.com")]
+    [InlineData("deniz@123.example.com")]
+    [InlineData("deniz@örnek.com.tr")]
+    [InlineData("deniz@xn--rnek-zoa.com.tr")]
     public void Valid_email_is_accepted(string email)
     {
         Assert.NotNull(ValidateWith("email", email).Request);
@@ -176,6 +180,12 @@ public class ServiceRequestValidatorTests
     [InlineData("deniz@.example.com")]
     [InlineData("deniz@example.com.")]
     [InlineData("deniz\u0000@example.com")]
+    [InlineData("codex-review@exa/mple.com")]
+    [InlineData("deniz@exa<mple.com")]
+    [InlineData("deniz@example.com>")]
+    [InlineData("deniz@exa_mple.com")]
+    [InlineData("deniz@-example.com")]
+    [InlineData("deniz@example-.com")]
     public void Malformed_email_is_rejected(string email)
     {
         Assert.Equal("Geçerli bir e-posta adresi girin.", SingleError(ValidateWith("email", email), "email"));

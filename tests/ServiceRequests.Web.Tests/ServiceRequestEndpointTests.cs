@@ -65,6 +65,34 @@ public class ServiceRequestEndpointTests
         Assert.Empty(store.Saved);
     }
 
+    [Fact]
+    public async Task Email_with_invalid_characters_in_the_domain_returns_400_and_saves_nothing()
+    {
+        var store = new RecordingStore();
+        await using var app = new TestApp(store);
+        using var client = app.CreateClient();
+
+        var response = await PostJsonAsync(client, ValidJson.Replace("deniz.ornek@example.com", "codex-review@exa/mple.com"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var errors = (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("errors");
+        Assert.Equal("Geçerli bir e-posta adresi girin.", errors.GetProperty("email")[0].GetString());
+        Assert.Empty(store.Saved);
+    }
+
+    [Fact]
+    public async Task Email_with_subdomain_and_plus_is_saved()
+    {
+        var store = new RecordingStore();
+        await using var app = new TestApp(store);
+        using var client = app.CreateClient();
+
+        var response = await PostJsonAsync(client, ValidJson.Replace("deniz.ornek@example.com", "deniz+test@mail.example.com.tr"));
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        Assert.Equal("deniz+test@mail.example.com.tr", Assert.Single(store.Saved).Email);
+    }
+
     [Theory]
     [InlineData("""{"name":""")]
     [InlineData("[]")]

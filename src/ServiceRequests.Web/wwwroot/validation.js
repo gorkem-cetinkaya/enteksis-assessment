@@ -18,9 +18,16 @@ export const SERVICE_CODES = Object.freeze(["workflow-automation", "api-integrat
 
 const EDGE_WHITESPACE = /^\p{White_Space}+|\p{White_Space}+$/gu;
 const CONTROL_CHARACTER = /\p{Cc}/u;
-// local@domain without whitespace, control characters or a second "@"; the
-// domain needs at least one dot and no empty labels. Same pattern as the server.
-const EMAIL_PATTERN = /^[^\p{White_Space}@\p{Cc}]+@(?:[^\p{White_Space}@\p{Cc}.]+\.)+[^\p{White_Space}@\p{Cc}.]+$/u;
+// One domain label: letters or digits, with hyphens only inside
+// ("mail", "my-company", "örnek", "xn--rnek-zoa").
+const DOMAIN_LABEL = String.raw`[\p{L}\p{Nd}](?:[\p{L}\p{Nd}-]*[\p{L}\p{Nd}])?`;
+// local@domain. The local part may not contain whitespace, control characters
+// or a second "@". The domain is two or more labels joined by dots, so "/",
+// "<", ">", "_" and empty labels are rejected. Same pattern as the server.
+const EMAIL_PATTERN = new RegExp(
+  String.raw`^[^\p{White_Space}@\p{Cc}]+@(?:${DOMAIN_LABEL}\.)+${DOMAIN_LABEL}$`,
+  "u",
+);
 const REQUEST_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const trim = (value) => value.replace(EDGE_WHITESPACE, "");
