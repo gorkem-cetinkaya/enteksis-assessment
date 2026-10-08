@@ -44,6 +44,7 @@ app.UseStaticFiles(new StaticFileOptions
 // Only endpoints that opt in (POST /api/requests) are rate-limited.
 app.UseRateLimiter();
 app.MapServiceRequestEndpoints();
+app.MapHealthEndpoint();
 
 try
 {
