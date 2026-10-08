@@ -1,4 +1,5 @@
 using Npgsql;
+using ServiceRequests.Web;
 using ServiceRequests.Web.Data;
 using ServiceRequests.Web.Requests;
 
@@ -29,6 +30,8 @@ builder.Services.AddServiceRequestRateLimiting();
 
 var app = builder.Build();
 
+// First, so that every response gets the headers, error responses included.
+app.UseSecurityHeaders();
 app.UseExceptionHandler();
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
